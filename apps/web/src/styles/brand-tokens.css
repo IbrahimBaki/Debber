@@ -1,0 +1,15 @@
+/* Dabber Brand v1 — approved visual direction */
+:root {
+  --dabber-navy: #0F1C2B;
+  --dabber-terracotta: #BA6649;
+  --dabber-sand: #E7DDD3;
+  --dabber-sage: #6F837B;
+  --dabber-paper: #FAF5EF;
+  --dabber-ink-muted: #6C7680;
+
+  --dabber-color-bg: var(--dabber-paper);
+  --dabber-color-text: var(--dabber-navy);
+  --dabber-color-action: var(--dabber-terracotta);
+  --dabber-color-balance: var(--dabber-sage);
+  --dabber-color-surface: var(--dabber-sand);
+}

@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "status": "owner-approved reference",
+  "colors": {
+    "navy": "#0F1C2B",
+    "terracotta": "#BA6649",
+    "sand": "#E7DDD3",
+    "sage": "#6F837B",
+    "paper": "#FAF5EF",
+    "ink_muted": "#6C7680"
+  },
+  "typography": {
+    "direction": "Arabic-first",
+    "recommendedArabic": "Noto Sans Arabic or a production-approved Arabic family",
+    "recommendedLatin": "Inter / DM Sans or final production companion",
+    "note": "Do not replace the approved logo artwork with live text."
+  },
+  "assets": {
+    "primaryLogo": "/brand/logo-primary.svg",
+    "arabicWordmark": "/brand/wordmark-ar.svg",
+    "englishWordmark": "/brand/wordmark-en.svg",
+    "mark": "/brand/mark.svg",
+    "appIcon": "/brand/app-icon.svg"
+  }
+}

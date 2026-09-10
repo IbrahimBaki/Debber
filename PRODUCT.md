@@ -57,7 +57,8 @@ Share the budget, not necessarily every number. Dabber combines collaborative ho
 ## Brand Commitments
 
 - Product name: Dabber.
-- No binding visual identity, color system, typography system, component library, or final visual direction is recorded yet. Visual craft is delegated to Impeccable in a later dedicated design phase.
+- Dabber Brand Identity v1 is owner-approved. The approved Brand Kit and its usage rules in `apps/web/BRAND.md` are the source of truth for the Web brand.
+- The core logo, mark, wordmarks, palette, and brand tokens are fixed unless the owner explicitly reopens branding. Detailed product UI and design-system decisions remain delegated to Impeccable and must derive from, rather than contradict, the approved Brand Kit.
 
 ## Evidence on Hand
 

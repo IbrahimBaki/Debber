@@ -25,6 +25,7 @@ This file records owner-approved project decisions. Coding agents may rely on **
 | D-017 | APPROVED | Local Supabase uses Option A: `npx supabase start` manages an isolated Dabber Supabase stack on the existing Docker daemon. The parent/shared `docker-compose.yml` is not modified for Dabber. |
 | D-018 | APPROVED | The household Web application is an installable PWA from the first release. |
 | D-019 | APPROVED | WCAG 2.2 AA is the accessibility target for both the household Web application and the Admin application; this is a product quality target, not a claim of formal certification or legal compliance. |
+| D-020 | APPROVED | Dabber Brand Identity v1 is owner-approved. The approved Brand Kit under `apps/web` is the visual source of truth. The core logo, mark, and wordmarks must not be redesigned or replaced without explicit owner approval. Impeccable may apply and extend the brand across the product but may not replace the core identity; the future Web UI and `apps/web/DESIGN.md` must derive from this Brand Kit. |
 
 ## Open decisions — stop and ask the owner
 
