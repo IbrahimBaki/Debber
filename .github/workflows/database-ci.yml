@@ -1,0 +1,27 @@
+name: Database CI
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/database-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Rebuild database from migrations
+        run: supabase db reset
+
+      - name: Run database tests
+        run: supabase test db

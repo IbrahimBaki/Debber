@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+supabase/.temp/
+supabase/.branches/
+.DS_Store
+
+# Claude Code local-only instructions
+CLAUDE.local.md
+.impeccable/config.local.json

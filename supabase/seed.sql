@@ -1,0 +1,3 @@
+-- Local development seed file.
+-- Keep this deterministic and free of production/customer data.
+-- Auth test-user creation should be added when the app's test harness is established.
