@@ -23,6 +23,8 @@ This file records owner-approved project decisions. Coding agents may rely on **
 | D-015 | APPROVED | Impeccable is initialized and maintained at project scope; root product context is shared and app-specific design context may be used for Web vs Admin when appropriate. |
 | D-016 | APPROVED | The existing shared Docker environment is protected infrastructure. Agents must not stop/prune/reconfigure unrelated services or modify the parent shared Compose without explicit owner approval. |
 | D-017 | APPROVED | Local Supabase uses Option A: `npx supabase start` manages an isolated Dabber Supabase stack on the existing Docker daemon. The parent/shared `docker-compose.yml` is not modified for Dabber. |
+| D-018 | APPROVED | The household Web application is an installable PWA from the first release. |
+| D-019 | APPROVED | WCAG 2.2 AA is the accessibility target for both the household Web application and the Admin application; this is a product quality target, not a claim of formal certification or legal compliance. |
 
 ## Open decisions — stop and ask the owner
 
