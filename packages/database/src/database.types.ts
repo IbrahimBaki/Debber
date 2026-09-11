@@ -970,6 +970,15 @@ export type Database = {
         }
         Returns: string
       }
+      create_household_invitation: {
+        Args: { p_email: string; p_household_id: string }
+        Returns: {
+          created: boolean
+          email: string
+          expires_at: string
+          invitation_id: string
+        }[]
+      }
       create_initial_household: {
         Args: {
           p_currency_code: string

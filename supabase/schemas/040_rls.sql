@@ -68,24 +68,14 @@ create policy "Members can read membership rows in their household"
 on public.household_members for select to authenticated
 using ((select public.is_household_member(household_id)));
 
--- Invitations
-grant select, insert, update, delete on table public.household_invitations to authenticated;
-create policy "Owners can read invitations for their household"
-on public.household_invitations for select to authenticated
-using ((select public.is_household_owner(household_id)));
-create policy "Owners can create invitations for their household"
-on public.household_invitations for insert to authenticated
-with check (
-  (select public.is_household_owner(household_id))
-  and invited_by = (select auth.uid())
-);
-create policy "Owners can update invitations for their household"
-on public.household_invitations for update to authenticated
-using ((select public.is_household_owner(household_id)))
-with check ((select public.is_household_owner(household_id)));
-create policy "Owners can delete invitations for their household"
-on public.household_invitations for delete to authenticated
-using ((select public.is_household_owner(household_id)));
+-- Invitations: no direct client grant. token_hash must never be selectable by a normal
+-- client, expires_at/status/token generation must be server-authoritative, and creation must
+-- write an audit event -- none of which a plain table grant can guarantee. All access goes
+-- through security-definer domain operations instead: public.create_household_invitation(...)
+-- (Owner-only creation), public.list_my_pending_household_invitations() and
+-- public.accept_household_invitation(_by_id)(...) (invitee discovery/acceptance). RLS stays
+-- enabled with zero policies on this table, so it stays deny-by-default even if a future
+-- change accidentally grants a table privilege without adding a matching policy.
 
 -- Platform admin marker: clients may only read their own marker. All privileged data access still happens server-side.
 grant select on table public.platform_admins to authenticated;

@@ -24,6 +24,24 @@ One pending invitation is presented for an explicit accept action. Multiple pend
 
 `public.accept_household_invitation(text)` remains available for token-based invitation-email entry points. It shares the same protected acceptance logic.
 
+## Partner invitation creation (MVP v1)
+
+`public.create_household_invitation(p_household_id uuid, p_email text)` is the sole authoritative path for an Owner to invite someone by email; the invited role is always `member` — `household_invitations` carries no role column, so none can be spoofed regardless of how a row is created. It derives the caller from `auth.uid()`, requires active Household ownership of `p_household_id`, and normalizes the email (trim + lowercase) before any comparison or storage.
+
+Three product rules are enforced authoritatively, not left to the client:
+
+- **Self-invite** (the Owner's own authoritative `auth.users.email`) is rejected (`self_invite_not_allowed`).
+- **Existing active Member**: inviting an email that already belongs to an active Member of that Household is rejected (`already_active_member`). The rejection carries no information about whether an unrelated email has a Dabber account elsewhere — only Household-scoped active membership is checked.
+- **Duplicate pending invite**: for the same Household and normalized email, an unexpired `pending` invitation makes the call idempotent — it returns the existing invitation rather than creating a duplicate, and writes no additional audit event. A stale `pending` row whose `expires_at` has passed does not block a fresh invitation; it is lazily transitioned to `expired` first. A `revoked` or `accepted` invitation never blocks a new one either.
+
+Expiration is fixed at 7 days from creation, computed server-side; the client cannot supply `expires_at`. `token_hash` is generated server-side from cryptographically random bytes (`extensions.gen_random_bytes(32)`), is never accepted as a parameter, and is never returned to any caller — the function's return row exposes only `invitation_id`, the normalized `email`, `expires_at`, and a `created` flag distinguishing a new row from an idempotent reuse. Concurrent/retried calls for the same Household+email are serialized with a transaction-scoped advisory lock (the same pattern `create_initial_household(...)` already uses), so a race can never produce two simultaneous pending rows for one recipient.
+
+`household_invitations` has **no direct client grant at all** (`select`/`insert`/`update`/`delete` are all revoked from `authenticated`; RLS stays enabled with zero policies). The previous generic Owner-scoped CRUD grant was removed because it could never enforce email normalization, the 7-day expiration window, server-generated tokens, self-invite/existing-member rejection, idempotency, or an audit trail — and it allowed `token_hash` to be selected directly. All access now goes through `create_household_invitation(...)`, `list_my_pending_household_invitations()`, and `accept_household_invitation(_by_id)(...)`, none of which need a table grant since they are `security definer`.
+
+### No outbound invitation email in MVP
+
+There is no configured email provider or invitation-email template (see `docs/AUTH.md`; D-105 remains open/deferred). Creating an invitation only ever produces a database record — the Web UI must say the invitation exists/is ready ("الدعوة جاهزة"), never that anything was sent. The Owner is expected to tell the invited partner, outside Dabber, to sign up or log in using that exact email address within the 7-day window; once authenticated, the existing discovery/acceptance flow above takes over automatically. Resend, a revoke UI, an invitation-history dashboard, and role selection are explicitly out of scope for this milestone.
+
 ## Initial Household creation
 
 `public.create_initial_household(text, varchar, integer, text)` derives the creator only from `auth.uid()`. It serializes concurrent/retried first-creation attempts using a transaction-scoped advisory lock, returns an existing active Household membership when one already exists, and refuses to bypass a valid pending invitation.
@@ -55,7 +73,7 @@ The onboarding operations are narrowly scoped `SECURITY DEFINER` functions with 
 ## Deferred work
 
 - Web onboarding UI and server routing
-- Invitation sending and management UI
+- Invitation resend, revoke UI, and an invitation-history dashboard (creation itself now exists; see "Partner invitation creation (MVP v1)" above)
 - Partner permission configuration
 - Household financial setup, budgeting, recurring items, and expense capture
 - Co-owner and ownership-transfer workflows

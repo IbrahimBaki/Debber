@@ -77,6 +77,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
             <Link className={styles.primaryButton} href="/app/expenses/new">إضافة مصروف</Link>
           ) : null}
           <Link className={canRecordExpense ? styles.quietButton : styles.primaryButton} href="/app/plan">خطة الشهر</Link>
+          <Link className={styles.quietButton} href="/app/invitations/new">دعوة شريك</Link>
         </div>
         <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
       </section>

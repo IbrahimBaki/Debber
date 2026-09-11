@@ -17,7 +17,7 @@
 | `profiles` | Application profile linked 1:1 to `auth.users`. |
 | `households` | Shared financial workspace. Carries `share_total_income_with_members` (boolean, default `false`), the sole Owner-controlled toggle for §6.5. |
 | `household_members` | Household-level owner/member membership. |
-| `household_invitations` | Invitation lifecycle using hashed tokens. |
+| `household_invitations` | Invitation lifecycle using hashed tokens. No direct client grant; see §6.1. |
 | `platform_admins` | Platform-level operators; separate from household roles. |
 | `resource_permissions` | Per-member custom grants for resources with `visibility_scope = custom`. |
 
@@ -97,6 +97,7 @@ Historical names and planned values are copied to monthly tables. Current privac
 - `list_my_pending_household_invitations()` securely derives the authenticated user from `auth.uid()` and returns only safe onboarding display fields for that user’s non-expired pending invitations.
 - `accept_household_invitation_by_id(uuid)` atomically validates the invitation recipient and creates an MVP `member` membership. The existing token-hash acceptance RPC remains available for invitation-link entry points.
 - `create_initial_household(...)` is the only authenticated-client Household creation operation. It is serialized and retry-safe, returns an existing active Household on retry, and relies on the existing insert trigger to create the `owner` membership transactionally.
+- `create_household_invitation(p_household_id uuid, p_email text)` is the only authenticated-client path that creates a `household_invitations` row. `household_invitations` itself has **no** direct client `select`/`insert`/`update`/`delete` grant — RLS stays enabled with zero policies, so it is deny-by-default even if a future change accidentally grants a table privilege without adding a matching policy. The function: requires `is_household_owner(p_household_id)`; normalizes the email (`lower(btrim(...))`); rejects a self-invite and an email already belonging to an active Member of that Household; is idempotent for a Household+normalized-email pair with an unexpired `pending` row (returns it, writes no second audit event); lazily expires a stale `pending` row before creating a fresh one; serializes concurrent/retried calls for the same Household+email with `pg_advisory_xact_lock(...)` (the same pattern `create_initial_household(...)` uses); always sets `invited_by = auth.uid()`, `status = 'pending'`, and a server-computed 7-day `expires_at`; and generates `token_hash` from `extensions.gen_random_bytes(32)` — never client-supplied, never returned. Its return row exposes only `invitation_id`, the normalized `email`, `expires_at`, and a `created` boolean. See `docs/ONBOARDING.md` for the full product semantics and D-032 in `docs/DECISIONS.md` for the approved decision.
 
 ## 6.2 Financial setup creation operations
 
