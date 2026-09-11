@@ -14,10 +14,12 @@
   --ui-warning: #8a5b23;
   --ui-warning-soft: #f6ead4;
   --ui-danger: #a0443b;
+  --ui-danger-text: #722c27;
   --ui-danger-soft: #f7e2df;
   --ui-danger-border: #d6aaa3;
   --ui-danger-surface: #fff8f6;
   --ui-neutral-soft: #edf0f1;
+  --ui-success-text: #244b42;
   --ui-category-food: #f5e1da;
   --ui-category-care: #eee7f0;
   --ui-category-move: #e1edf3;

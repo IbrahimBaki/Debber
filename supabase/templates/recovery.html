@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <body style="margin:0;background:#FAF5EF;color:#0F1C2B;font-family:Tahoma,Arial,sans-serif;line-height:1.7">
+    <main style="max-width:520px;margin:32px auto;padding:32px;background:#FFFFFF;border-radius:18px">
+      <p style="margin:0 0 20px;color:#BA6649;font-weight:700">دبّر</p>
+      <h1 style="margin:0 0 12px;font-size:24px">استعادة كلمة المرور</h1>
+      <p style="margin:0 0 24px">استخدم الرابط التالي لاختيار كلمة مرور جديدة لحسابك.</p>
+      <p style="margin:0 0 24px">
+        <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery" style="display:inline-block;padding:12px 20px;background:#BA6649;color:#FFFAF5;text-decoration:none;border-radius:999px;font-weight:700">اختيار كلمة مرور جديدة</a>
+      </p>
+      <p style="margin:0;color:#596572;font-size:14px">إذا لم تطلب استعادة كلمة المرور، يمكنك تجاهل هذه الرسالة بأمان.</p>
+    </main>
+  </body>
+</html>

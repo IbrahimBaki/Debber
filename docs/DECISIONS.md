@@ -26,6 +26,7 @@ This file records owner-approved project decisions. Coding agents may rely on **
 | D-018 | APPROVED | The household Web application is an installable PWA from the first release. |
 | D-019 | APPROVED | WCAG 2.2 AA is the accessibility target for both the household Web application and the Admin application; this is a product quality target, not a claim of formal certification or legal compliance. |
 | D-020 | APPROVED | Dabber Brand Identity v1 is owner-approved. The approved Brand Kit under `apps/web` is the visual source of truth. The core logo, mark, and wordmarks must not be redesigned or replaced without explicit owner approval. Impeccable may apply and extend the brand across the product but may not replace the core identity; the future Web UI and `apps/web/DESIGN.md` must derive from this Brand Kit. |
+| D-021 | APPROVED | Dabber Auth v1 uses Email + Password with mandatory email verification and email password recovery. Google OAuth, social login, Magic Link login, and email OTP login are outside MVP Auth v1. Sessions remain cookie-backed through Supabase SSR; authentication never replaces household authorization, which remains server-enforced with RLS. |
 
 ## Open decisions — stop and ask the owner
 
