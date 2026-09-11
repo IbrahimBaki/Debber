@@ -12,3 +12,7 @@ export function formatDateRange(start: string, end: string): string {
   const formatter = new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "long", year: "numeric" });
   return `${formatter.format(new Date(start))} – ${formatter.format(new Date(end))}`;
 }
+
+export function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "long" }).format(new Date(value));
+}

@@ -181,6 +181,25 @@ export async function setCommitmentSkipped(_previousState: PlanActionState, form
   if (error) return { error: friendlyError(error, "تعذر حفظ التغيير الآن.") };
 
   revalidatePath("/app/plan");
+  revalidatePath("/app");
+  return initialState;
+}
+
+// Used from both the /app/plan setup wizard and the /app monthly execution surface. Omits
+// p_actual_amount entirely so the RPC's own default (the planned amount) applies -- this is a
+// simple settle action for MVP, not an adjustable/partial-payment flow.
+export async function markCommitmentPaid(_previousState: PlanActionState, formData: FormData): Promise<PlanActionState> {
+  const { supabase } = await requireSession();
+  const id = parseId(formData.get("id"));
+  if (!id) return { error: "تعذر التعرف على الالتزام." };
+
+  const { error } = await supabase.rpc("mark_period_fixed_commitment_paid", {
+    p_period_fixed_commitment_id: id,
+  });
+  if (error) return { error: friendlyError(error, "تعذر تسجيل الدفع الآن. حاول مرة أخرى.") };
+
+  revalidatePath("/app/plan");
+  revalidatePath("/app");
   return initialState;
 }
 

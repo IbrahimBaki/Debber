@@ -9,6 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveExpenseEligibility } from "./expenses/eligibility";
 import { loadMemberMonthlyView } from "./member-data";
 import { MemberMonthlyViewPanel } from "./member-view";
+import { loadOwnerCommitments } from "./owner-commitments-data";
+import { OwnerCommitmentsSection } from "./owner-commitments";
 import planStyles from "./plan/plan.module.css";
 
 export default async function AppPage({ searchParams }: { searchParams: Promise<{ passwordUpdated?: string }> }) {
@@ -60,6 +62,8 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
     );
   }
 
+  const commitmentsView = await loadOwnerCommitments(supabase, household);
+
   return (
     <main className={styles.page}>
       <section className={styles.ready} aria-labelledby="ready-title">
@@ -79,6 +83,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
           <Link className={canRecordExpense ? styles.quietButton : styles.primaryButton} href="/app/plan">خطة الشهر</Link>
           <Link className={styles.quietButton} href="/app/invitations/new">دعوة شريك</Link>
         </div>
+        <OwnerCommitmentsSection view={commitmentsView} currencyCode={household.currency_code} />
         <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
       </section>
     </main>

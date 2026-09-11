@@ -1,0 +1,18 @@
+.section { margin-top: var(--space-6); display: grid; gap: var(--space-3); text-align: start; width: 100%; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.header h2 { margin: 0; font-size: 1.05rem; }
+.note { margin: 0; color: var(--ui-text-muted); font-size: .84rem; line-height: 1.6; }
+
+.statusPending, .statusPaid, .statusSkipped, .statusOverdue { display: inline-flex; align-items: center; gap: .25rem; font-weight: 700; }
+.statusPending { color: var(--ui-text-muted); }
+.statusPaid { color: var(--ui-success-text); }
+.statusSkipped { color: var(--ui-text-muted); }
+.statusOverdue { color: var(--ui-warning); }
+
+.confirmBlock { display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--dabber-sand); border-radius: var(--radius-md); }
+.confirmBlock > p { margin: 0; font-size: .84rem; font-weight: 650; color: var(--ui-text); line-height: 1.6; }
+.confirmBlock:focus { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
+
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr)); gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); background: var(--dabber-sand); border-radius: var(--radius-md); }
+.summary dt { color: var(--ui-text-muted); font-size: .74rem; }
+.summary dd { margin: .2rem 0 0; }
