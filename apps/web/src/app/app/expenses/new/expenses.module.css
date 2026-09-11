@@ -1,0 +1,79 @@
+.page { min-height: 100dvh; display: flex; flex-direction: column; }
+.content { width: 100%; max-width: 30rem; margin: 0 auto; padding: var(--space-5); padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom)); flex: 1; display: flex; flex-direction: column; }
+
+.header { display: flex; align-items: center; justify-content: space-between; padding-block: var(--space-3) var(--space-5); }
+.header h1 { margin: 0; font-size: 1.25rem; }
+.backLink { display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: var(--radius-pill); color: var(--ui-text); text-decoration: none; }
+.backLink .icon { transform: rotate(180deg); }
+.backLink:hover { background: var(--dabber-sand); }
+
+.form { display: grid; gap: var(--space-6); flex: 1; }
+
+.field { display: grid; gap: var(--space-2); }
+.field label { font-weight: 800; font-size: .88rem; }
+.field select, .field input, .field textarea { min-height: 3.25rem; width: 100%; padding-inline: var(--space-3); padding-block: .6rem; color: var(--ui-text); font: inherit; background: var(--ui-surface); border: 1px solid var(--ui-border-strong); border-radius: var(--radius-sm); }
+.field select:focus, .field input:focus, .field textarea:focus { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
+.field textarea { min-height: 4.5rem; resize: vertical; }
+.fieldSecondary label { font-weight: 700; color: var(--ui-text-muted); font-size: .82rem; }
+.fieldSecondary select, .fieldSecondary input, .fieldSecondary textarea { min-height: 2.9rem; font-size: .92rem; }
+.fieldHint { margin: 0; color: var(--ui-text-muted); font-size: .78rem; line-height: 1.6; }
+
+.sectionMeta { display: flex; justify-content: space-between; gap: var(--space-2); margin-top: .35rem; font-size: .78rem; color: var(--ui-text-muted); }
+.sectionMeta .amount { font-size: .78rem; }
+
+.rowError { margin: 0; padding: var(--space-3); color: var(--ui-danger-text); background: var(--ui-danger-soft); border-radius: var(--radius-md); font-size: .86rem; line-height: 1.6; }
+
+.spacer { flex: 1; }
+
+.submitButton { position: sticky; bottom: calc(var(--space-3) + env(safe-area-inset-bottom)); min-height: 3.5rem; width: 100%; color: var(--ui-text-on-dark); font: inherit; font-size: 1.02rem; font-weight: 800; background: var(--ui-brand); border: 0; border-radius: var(--radius-pill); box-shadow: var(--shadow-float); cursor: pointer; }
+.submitButton:hover:not(:disabled) { background: var(--ui-brand-strong); transform: translateY(-1px); }
+.submitButton:disabled { opacity: .65; cursor: wait; }
+
+/* Safe / guidance states (no open period, no eligible sections) */
+.stateCard { margin: auto 0; padding: var(--space-6); text-align: center; background: var(--ui-surface-raised); border: 1px solid var(--ui-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lift); display: grid; gap: var(--space-3); justify-items: center; }
+.stateCard span { width: 2.75rem; height: 2.75rem; display: grid; place-items: center; border-radius: 50%; background: var(--dabber-sand); color: var(--ui-brand-strong); }
+.stateCard h1 { margin: 0; font-size: 1.25rem; }
+.stateCard p { margin: 0; color: var(--ui-text-muted); line-height: 1.7; }
+.stateCard .primaryButton { margin-top: var(--space-2); }
+
+.primaryButton { display: inline-flex; align-items: center; justify-content: center; min-height: 3.25rem; padding-inline: var(--space-6); color: var(--ui-text-on-dark); text-decoration: none; font: inherit; font-weight: 800; background: var(--ui-brand); border: 0; border-radius: var(--radius-pill); cursor: pointer; }
+.primaryButton:hover { background: var(--ui-brand-strong); }
+.quietLink { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding-inline: var(--space-4); color: var(--ui-brand-strong); text-decoration: none; font: inherit; font-weight: 750; border: 1px solid currentColor; border-radius: var(--radius-pill); }
+
+/* Success / voided state */
+.successCard { margin: auto 0; padding: var(--space-6); text-align: center; background: var(--ui-success-soft); border-radius: var(--radius-lg); display: grid; gap: var(--space-2); justify-items: center; animation: settle var(--duration-standard) var(--ease-out); }
+.successCard span { width: 3rem; height: 3rem; display: grid; place-items: center; border-radius: 50%; background: var(--ui-success); color: #fffaf5; }
+.successCard h1 { margin: var(--space-2) 0 0; font-size: 1.25rem; color: var(--ui-success-text); }
+.successAmount { display: block; margin: .2rem 0; font-size: clamp(2rem, 9vw, 2.6rem); }
+.successSection { margin: 0; color: var(--ui-text-muted); }
+
+.voidedCard { margin: auto 0; padding: var(--space-6); text-align: center; background: var(--ui-neutral-soft); border-radius: var(--radius-lg); display: grid; gap: var(--space-2); justify-items: center; }
+.voidedCard span { width: 3rem; height: 3rem; display: grid; place-items: center; border-radius: 50%; background: var(--ui-text-muted); color: #fffaf5; }
+.voidedCard h1 { margin: var(--space-2) 0 0; font-size: 1.25rem; }
+
+.overspendNote { display: flex; align-items: flex-start; gap: .4rem; margin: 0; padding: var(--space-3); color: var(--ui-warning); background: var(--ui-warning-soft); border-radius: var(--radius-md); font-size: .84rem; line-height: 1.6; text-align: start; }
+.overspendNote .icon { flex: 0 0 auto; margin-top: .1rem; }
+
+.successActions { display: grid; gap: var(--space-2); width: 100%; margin-top: var(--space-4); }
+.voidButton { min-height: 2.75rem; border: 0; background: transparent; color: var(--ui-danger); font: inherit; font-weight: 750; font-size: .84rem; cursor: pointer; }
+.voidButton:disabled { opacity: .6; cursor: wait; }
+
+.voidConfirm { display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--ui-danger-surface); border-radius: var(--radius-md); }
+.voidConfirm > span { font-size: .84rem; font-weight: 750; color: var(--ui-danger-text); }
+.voidConfirmActions { display: flex; gap: var(--space-2); }
+.confirmVoidButton { min-height: 2.5rem; padding-inline: var(--space-3); border: 0; border-radius: var(--radius-pill); background: var(--ui-danger); color: #fffaf5; font: inherit; font-size: .82rem; font-weight: 800; cursor: pointer; }
+.confirmVoidButton:disabled { opacity: .65; cursor: wait; }
+.cancelVoidButton { min-height: 2.5rem; padding-inline: var(--space-3); border: 1px solid var(--ui-border-strong); border-radius: var(--radius-pill); background: transparent; color: var(--ui-text); font: inherit; font-size: .82rem; font-weight: 750; cursor: pointer; }
+
+.icon { flex: 0 0 auto; }
+
+@keyframes settle { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+@media (min-width: 48rem) {
+  .content { max-width: 26rem; padding-top: var(--space-8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .successCard { animation: none; }
+  .submitButton, .primaryButton { transition: none; }
+}

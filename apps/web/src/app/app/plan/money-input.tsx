@@ -31,6 +31,7 @@ export function MoneyInput({
   disabled,
   autoFocus,
   required = true,
+  size = "default",
 }: {
   name: string;
   label: string;
@@ -39,12 +40,14 @@ export function MoneyInput({
   disabled?: boolean;
   autoFocus?: boolean;
   required?: boolean;
+  /** "hero" is for a surface where the amount IS the screen (e.g. Quick Expense Entry). */
+  size?: "default" | "hero";
 }) {
   const [value, setValue] = useState(defaultValue);
   const id = useId();
 
   return (
-    <div className={styles.moneyField}>
+    <div className={size === "hero" ? `${styles.moneyField} ${styles.moneyFieldHero}` : styles.moneyField}>
       <label htmlFor={id}>{label}</label>
       <div className={styles.moneyControl}>
         <input

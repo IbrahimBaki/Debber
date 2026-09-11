@@ -83,6 +83,15 @@
 .moneySuffix { flex: 0 0 auto; min-width: 2.75rem; text-align: center; color: var(--ui-text-muted); font-weight: 700; }
 .moneyInput:focus, .field input:focus, .field select:focus { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
 
+/* Hero variant: for a surface where the amount IS the screen (e.g. Quick Expense Entry),
+   not one line-item among several (e.g. financial setup). Opt-in via MoneyInput's size prop;
+   the default size/callers above are unaffected. */
+.moneyFieldHero label { font-size: 1rem; text-align: center; }
+.moneyFieldHero .moneyControl { justify-content: center; }
+.moneyFieldHero .moneyInput { flex: 0 1 auto; min-height: 4.5rem; max-width: 12rem; padding-inline: var(--space-2); font-size: clamp(2.25rem, 12vw, 3rem); font-weight: 800; text-align: center; border-color: transparent; background: transparent; }
+.moneyFieldHero .moneyInput:focus { border-radius: var(--radius-md); }
+.moneyFieldHero .moneySuffix { min-width: auto; font-size: 1.1rem; font-weight: 800; color: var(--ui-text); }
+
 .addForm { display: grid; gap: var(--space-4); padding: var(--space-4); border: 1px dashed var(--ui-border-strong); border-radius: var(--radius-md); }
 .addButton { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 3rem; border: 0; border-radius: var(--radius-pill); background: var(--ui-brand); color: #fffaf5; font: inherit; font-weight: 800; cursor: pointer; transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out); }
 .addButton:hover:not(:disabled) { background: var(--ui-brand-strong); transform: translateY(-1px); }

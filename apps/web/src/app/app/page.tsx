@@ -6,6 +6,8 @@ import { signOut } from "@/app/auth/actions";
 import styles from "@/app/app/onboarding.module.css";
 import { createClient } from "@/lib/supabase/server";
 
+import { resolveExpenseEligibility } from "./expenses/eligibility";
+
 export default async function AppPage({ searchParams }: { searchParams: Promise<{ passwordUpdated?: string }> }) {
   const supabase = await createClient();
   const { data: claims, error: claimsError } = await supabase.auth.getClaims();
@@ -29,13 +31,16 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
 
   const { data: household } = await supabase
     .from("households")
-    .select("name, currency_code, period_start_day")
+    .select("id, name, currency_code, period_start_day, timezone")
     .eq("id", membership.household_id)
     .maybeSingle();
   if (!household) redirect("/app");
 
   const { passwordUpdated } = await searchParams;
   const role = membership.role === "owner" ? "مالك البيت" : "عضو البيت";
+
+  const eligibility = await resolveExpenseEligibility(supabase, household, membership.role === "owner" ? "owner" : "member");
+  const canRecordExpense = eligibility.status === "open" && eligibility.sections.length > 0;
 
   return (
     <main className={styles.page}>
@@ -49,11 +54,18 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
           <div><dt>العملة</dt><dd dir="ltr">{household.currency_code}</dd></div>
           <div><dt>بداية الشهر المالي</dt><dd>{household.period_start_day}</dd></div>
         </dl>
-        {membership.role === "owner" ? (
-          <Link className={styles.primaryButton} href="/app/plan">خطة الشهر</Link>
-        ) : (
-          <p className={styles.future}>سيظهر هنا ما يشاركه معك مالك البيت من الخطة.</p>
-        )}
+        <div className={styles.actions}>
+          {canRecordExpense ? (
+            <Link className={styles.primaryButton} href="/app/expenses/new">إضافة مصروف</Link>
+          ) : null}
+          {membership.role === "owner" ? (
+            <Link className={canRecordExpense ? styles.quietButton : styles.primaryButton} href="/app/plan">خطة الشهر</Link>
+          ) : !canRecordExpense ? (
+            <p className={styles.future}>
+              {eligibility.status === "open" ? "مفيش أقسام متاحة ليك لتسجيل مصروف دلوقتي." : "الشهر لسه ما بدأش."}
+            </p>
+          ) : null}
+        </div>
         <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
       </section>
     </main>
