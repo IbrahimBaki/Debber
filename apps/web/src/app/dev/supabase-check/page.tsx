@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import {
   getSupabasePublicConfig,
   hasSupabasePublicConfig,
@@ -43,6 +45,12 @@ async function runCheck(): Promise<CheckResult> {
 }
 
 export default async function SupabaseCheckPage() {
+  // Development-only diagnostic: this must never be reachable in a deployed environment,
+  // since it discloses backend reachability/configuration/session state to any visitor.
+  if (process.env.NODE_ENV !== "development") {
+    notFound();
+  }
+
   const result = await runCheck();
 
   const content = {

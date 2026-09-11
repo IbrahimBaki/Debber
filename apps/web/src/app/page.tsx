@@ -1,7 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function Home() {
-  return (
-    <main>
-      <h1>Dabber</h1>
-    </main>
-  );
+  redirect("/app");
 }
