@@ -19,11 +19,25 @@ export default async function LoginPage({
   const { next, auth_error: authError } = await searchParams;
   const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
 
+  // A confirmation link and a recovery link fail for different reasons and imply different
+  // next actions -- a used/expired confirmation link often means the account is already
+  // confirmed (so logging in is the useful next step), while a used/expired recovery link
+  // implies nothing about whether the password was actually changed, so the safe next step is
+  // simply to request a new one. Neither message claims a specific account state as fact.
+  const errorMessage =
+    authError === "confirmation"
+      ? "الرابط ده اتستخدم قبل كده أو انتهت صلاحيته. لو كنت فعّلت الحساب بالفعل، جرّب تسجيل الدخول بنفس البريد وكلمة السر اللي اخترتهم وقت التسجيل."
+      : authError === "recovery"
+        ? "رابط استعادة كلمة المرور ده اتستخدم قبل كده أو انتهت صلاحيته. اطلب رابطًا جديدًا وحاول تاني."
+        : authError
+          ? "تعذر إتمام الرابط. اطلب رابطًا جديدًا وحاول مرة أخرى."
+          : null;
+
   return (
     <AuthShell title="أهلًا بعودتك" description="سجّل دخولك للمتابعة إلى دبّر.">
-      {authError ? (
+      {errorMessage ? (
         <p className={styles.error} role="alert">
-          تعذر إتمام الرابط. اطلب رابطًا جديدًا وحاول مرة أخرى.
+          {errorMessage}
         </p>
       ) : null}
       <AuthForm action={signIn}>
