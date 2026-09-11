@@ -1,11 +1,29 @@
--- Dabber declarative schema: immutable ownership/scope fields.
--- These prevent legitimate users from moving historical or scoped rows across security boundaries via UPDATE.
+-- Migration: 20260911141955_extend_fixed_commitment_immutability
+-- Purpose: Close a pre-existing gap where enforce_immutable_scope_fields() protected
+-- every sibling persistent/monthly-snapshot table pair (income_sources/period_income_items,
+-- budget_sections/period_section_budgets, recurring_templates/monthly_items) except
+-- fixed_commitment_templates and period_fixed_commitments, which were left unprotected
+-- against legitimate users moving a historical or scoped row across a security boundary
+-- via UPDATE.
+-- Risk: New trigger coverage only. Columns frozen are chosen by direct analogy to
+-- sibling tables and cannot be reached by any approved RPC's UPDATE statement today:
+--   fixed_commitment_templates: household_id, created_by (same set as recurring_templates,
+--     income_sources, budget_sections).
+--   period_fixed_commitments: period_id, fixed_commitment_template_id, created_by (same
+--     shape as period_income_items' period_id/income_source_id/created_by).
+-- planned_amount, actual_amount, status, name_snapshot and due_date remain mutable,
+-- matching monthly_items' and period_income_items' choice not to freeze their equivalent
+-- fields. mark_period_fixed_commitment_paid, set_period_fixed_commitment_planned_amount,
+-- and set_period_fixed_commitment_skipped only ever update those columns, never the
+-- newly-frozen ones, so no approved operation is affected.
+-- Data migration: None.
+-- Rollback: Forward migration only. Do not delete migration history.
 
-create or replace function public.enforce_immutable_scope_fields()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
+CREATE OR REPLACE FUNCTION public.enforce_immutable_scope_fields()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 begin
   if tg_table_name = 'budget_periods' then
     if new.household_id is distinct from old.household_id
@@ -71,23 +89,8 @@ begin
 end;
 $$;
 
-create trigger budget_periods_immutable_scope before update on public.budget_periods
-for each row execute function public.enforce_immutable_scope_fields();
-create trigger income_sources_immutable_scope before update on public.income_sources
-for each row execute function public.enforce_immutable_scope_fields();
-create trigger period_income_items_immutable_scope before update on public.period_income_items
-for each row execute function public.enforce_immutable_scope_fields();
-create trigger budget_sections_immutable_scope before update on public.budget_sections
-for each row execute function public.enforce_immutable_scope_fields();
-create trigger period_section_budgets_immutable_scope before update on public.period_section_budgets
-for each row execute function public.enforce_immutable_scope_fields();
-create trigger recurring_templates_immutable_scope before update on public.recurring_templates
-for each row execute function public.enforce_immutable_scope_fields();
-create trigger fixed_commitment_templates_immutable_scope before update on public.fixed_commitment_templates
-for each row execute function public.enforce_immutable_scope_fields();
-create trigger period_fixed_commitments_immutable_scope before update on public.period_fixed_commitments
-for each row execute function public.enforce_immutable_scope_fields();
-create trigger monthly_items_immutable_scope before update on public.monthly_items
-for each row execute function public.enforce_immutable_scope_fields();
-create trigger transactions_immutable_scope before update on public.transactions
-for each row execute function public.enforce_immutable_scope_fields();
+CREATE TRIGGER fixed_commitment_templates_immutable_scope BEFORE UPDATE ON public.fixed_commitment_templates
+FOR EACH ROW EXECUTE FUNCTION public.enforce_immutable_scope_fields();
+
+CREATE TRIGGER period_fixed_commitments_immutable_scope BEFORE UPDATE ON public.period_fixed_commitments
+FOR EACH ROW EXECUTE FUNCTION public.enforce_immutable_scope_fields();

@@ -57,10 +57,33 @@ Do not edit remote production.
 ### Step 3 — generate migration
 
 ```bash
-npx supabase db diff -f add_recurring_template_notes
+npx supabase db schema declarative sync --no-apply --file add_recurring_template_notes
 ```
 
-This creates a timestamped SQL file in `supabase/migrations/`.
+This creates a timestamped SQL file in `supabase/migrations/` without touching the local
+database (`--no-apply`); add `--apply` instead once you're ready to also apply it locally
+(equivalent to following with `npm run db:reset`).
+
+Do **not** use `npx supabase db diff` for this step. In the installed CLI (`supabase` 2.117.0),
+`db diff` prints `WARNING: [db.migrations].schema_paths no longer changes the migrations
+baseline used by db diff...` and always reports "No schema changes found" against
+`supabase/schemas/`, even when the two have genuinely diverged — it now only diffs the local
+database against another live database, not against declarative schema files. `db schema
+declarative sync` is the command that actually reads `supabase/schemas/*.sql` and diffs it
+against the migrations-derived database; verify with `--no-apply` (no `--file`) any time you
+want to check for drift without generating a file.
+
+Two things worth knowing about how `declarative sync` diffs functions:
+
+- It flags a function as changed if its stored text differs from the schema file's text at
+  all, including pure whitespace — write schema-file SQL with normal spacing around operators
+  (`x = y`, not `x=y`) to avoid the tool re-issuing an unrelated `CREATE OR REPLACE FUNCTION`
+  the next time you touch a nearby line.
+- `schema_paths` in `[db.migrations]` is not read by this command (confirmed by testing with
+  it set to `[]`) — it discovers `supabase/schemas/*.sql` on its own. The config value is kept
+  set to `["./schemas/*.sql"]` anyway because it is still the documented value and may still
+  matter to other tooling (e.g. migration-style `db pull`), but do not rely on it to make
+  declarative diffing work.
 
 ### Step 4 — review generated SQL manually
 

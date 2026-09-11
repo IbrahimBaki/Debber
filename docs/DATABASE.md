@@ -112,6 +112,17 @@ All three derive the Household from the supplied period (never from a client-sup
 
 An audit event (`fixed_commitment.created` / `budget_section.created`) is written only on first creation, not on an idempotent retry, matching the pattern already used by `mark_period_fixed_commitment_paid(...)`.
 
+## 6.3 Scope-immutability coverage
+
+`enforce_immutable_scope_fields()` (`supabase/schemas/026_immutability.sql`) is a single `before update` trigger function, attached per table, that blocks a row's scope/identity columns from being reassigned after creation — it exists so a legitimate write path can never move a historical or scoped row across a security boundary. Every persistent/monthly-snapshot table pair carries it: `income_sources`/`period_income_items`, `budget_sections`/`period_section_budgets`, `recurring_templates`/`monthly_items`, and — as of the fixed-commitment domain's forward migration — `fixed_commitment_templates`/`period_fixed_commitments`. Frozen columns follow the same shape as their sibling pair in each case:
+
+- `fixed_commitment_templates`: `household_id`, `created_by` (same set as `recurring_templates`, `income_sources`, `budget_sections`).
+- `period_fixed_commitments`: `period_id`, `fixed_commitment_template_id`, `created_by` (same shape as `period_income_items`).
+
+Mutable financial fields are deliberately excluded, mirroring `monthly_items`' and `period_income_items`' choice not to freeze their equivalent columns: `planned_amount`, `actual_amount`, `status`, `name_snapshot`, and `due_date`/`due_day` all remain writable through the approved RPCs (`set_period_fixed_commitment_planned_amount(...)`, `set_period_fixed_commitment_skipped(...)`, `mark_period_fixed_commitment_paid(...)`) and, on `fixed_commitment_templates`, through the existing Owner `update` grant. The trigger only rejects a write when a frozen column's value would actually change (`is distinct from`); writing back the same value is not blocked.
+
+`period_fixed_commitments` (like `period_section_budgets`) has no client `update` grant at all, so its trigger is unreachable through ordinary RLS-governed access — its purpose is to guard the table's only write path, the `security definer` RPCs above, which run with elevated privileges that bypass table grants. Test it accordingly (directly, not through the `authenticated` role) — see `supabase/tests/database/fixed_commitment_immutability.test.sql`.
+
 ## 7. Money calculations
 
 Owner planning model:
