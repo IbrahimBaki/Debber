@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-11T00:00:00Z",
+  "title": "Design System: Dabber Web Candidate",
+  "extensions": {
+    "colorMeta": {
+      "paper": { "role": "neutral", "displayName": "Warm Paper", "canonical": "#FAF5EF", "tonalRamp": ["#302c29", "#544d47", "#776e66", "#9a9087", "#bbb1a7", "#d8cec4", "#eee5dc", "#faf5ef"] },
+      "navy": { "role": "primary", "displayName": "Deep Navy", "canonical": "#0F1C2B", "tonalRamp": ["#0f1c2b", "#203347", "#344b62", "#50657c", "#71849a", "#98a8b8", "#c4ced7", "#eef1f4"] },
+      "terracotta": { "role": "secondary", "displayName": "Intentional Terracotta", "canonical": "#BA6649", "tonalRamp": ["#452318", "#633125", "#814231", "#9e533d", "#ba6649", "#d58970", "#eab6a7", "#fae4dd"] },
+      "sage": { "role": "tertiary", "displayName": "Calm Sage", "canonical": "#6F837B", "tonalRamp": ["#1f302b", "#32463f", "#485e55", "#5c7168", "#6f837b", "#95aaa1", "#c2d0ca", "#e7eeea"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Arabic Display", "purpose": "Concise page meaning and monthly status." },
+      "financial": { "displayName": "Financial Figures", "purpose": "Stable EGP values in summaries and lists." }
+    },
+    "shadows": [
+      { "name": "float", "value": "0 14px 30px rgb(15 28 43 / 0.14)", "purpose": "Persistent primary expense action." },
+      { "name": "lift", "value": "0 20px 48px rgb(15 28 43 / 0.16)", "purpose": "Navy monthly financial anchor only." }
+    ],
+    "motion": [
+      { "name": "standard", "value": "cubic-bezier(0.16, 1, 0.3, 1) / 260ms", "purpose": "Short settling state continuity." },
+      { "name": "fast", "value": "160ms", "purpose": "Button press and hover response." }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "48rem" },
+      { "name": "desktop", "value": "72rem" }
+    ]
+  },
+  "components": [
+    { "name": "Primary Expense Action", "kind": "button", "refersTo": "button-primary", "description": "Persistent, labeled entry action for expense capture.", "html": "<button class=\"ds-expense\">＋ إضافة مصروف</button>", "css": ".ds-expense { min-height:56px; padding:0 18px; border:0; border-radius:999px; background:#BA6649; color:#FFFAF5; font:700 15px Arial,sans-serif; box-shadow:0 14px 30px rgb(15 28 43 / .14); } .ds-expense:hover { background:#93472f; transform:translateY(-2px); } .ds-expense:focus-visible { outline:3px solid #075f82; outline-offset:3px; }" },
+    { "name": "Allocation Track", "kind": "custom", "refersTo": "financial-track", "description": "Spent and remaining are a single clear divided financial line.", "html": "<div class=\"ds-track\"><span></span><i></i><b></b></div>", "css": ".ds-track{height:10px;display:flex;overflow:hidden;border-radius:999px;background:rgb(250 245 239 / .16)}.ds-track span{width:63%;background:#BA6649}.ds-track i{width:3px;background:#0F1C2B}.ds-track b{flex:1;background:#6F837B}" },
+    { "name": "Status Chip", "kind": "chip", "refersTo": "status-paid", "description": "A status always combines Arabic text with a semantic color.", "html": "<span class=\"ds-status\">✓ تم السداد</span>", "css": ".ds-status{display:inline-flex;gap:5px;align-items:center;color:#416b60;font:700 12px Arial,sans-serif}" }
+  ],
+  "narrative": {
+    "northStar": "The Calm Allocation",
+    "overview": "Dabber presents a shared month as deliberate allocations, not a generic finance dashboard. Warm paper and restrained divisions make financial status readable before decoration.",
+    "keyCharacteristics": ["Arabic-first hierarchy", "Linear allocation progress", "Tonal surfaces over card grids", "Thumb-reachable primary action"],
+    "rules": [{ "name": "Deliberate Accent", "body": "Terracotta identifies intentional action and actual spent progress; it is never general decoration.", "section": "colors" }],
+    "dos": ["Use semantic UI tokens derived from Brand v1.", "Pair progress with explicit financial amounts and labels."],
+    "donts": ["Do not redraw or replace official brand assets.", "Do not use generic donut charts or color-only status." ]
+  }
+}
