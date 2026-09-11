@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/app/auth/actions";
@@ -48,7 +49,11 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
           <div><dt>العملة</dt><dd dir="ltr">{household.currency_code}</dd></div>
           <div><dt>بداية الشهر المالي</dt><dd>{household.period_start_day}</dd></div>
         </dl>
-        <p className={styles.future}>البيت جاهز. هنجهز الميزانية في الخطوة التالية.</p>
+        {membership.role === "owner" ? (
+          <Link className={styles.primaryButton} href="/app/plan">خطة الشهر</Link>
+        ) : (
+          <p className={styles.future}>سيظهر هنا ما يشاركه معك مالك البيت من الخطة.</p>
+        )}
         <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
       </section>
     </main>
