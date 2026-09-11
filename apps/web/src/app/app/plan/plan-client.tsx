@@ -37,7 +37,14 @@ export function PlanClient({
   sections,
 }: {
   mode: "draft" | "open";
-  household: { id: string; name: string; currency_code: string; period_start_day: number; timezone: string };
+  household: {
+    id: string;
+    name: string;
+    currency_code: string;
+    period_start_day: number;
+    timezone: string;
+    share_total_income_with_members: boolean;
+  };
   period: { id: string; periodKey: string; startDate: string; endDate: string };
   summary: PlanningSummary | null;
   income: IncomeItem[];
@@ -96,7 +103,15 @@ export function PlanClient({
               ))}
             </nav>
 
-            {step === "income" ? <IncomeStep periodId={period.id} currencyCode={currencyCode} income={income} /> : null}
+            {step === "income" ? (
+              <IncomeStep
+                periodId={period.id}
+                currencyCode={currencyCode}
+                income={income}
+                householdId={household.id}
+                shareTotalIncomeWithMembers={household.share_total_income_with_members}
+              />
+            ) : null}
             {step === "commitments" ? <CommitmentsStep periodId={period.id} currencyCode={currencyCode} commitments={commitments} /> : null}
             {step === "budget" ? <BudgetStep periodId={period.id} currencyCode={currencyCode} summary={safeSummary} /> : null}
             {step === "sections" ? (

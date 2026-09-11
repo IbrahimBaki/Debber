@@ -27,7 +27,7 @@ export default async function PlanPage() {
 
   const { data: household } = await supabase
     .from("households")
-    .select("id, name, currency_code, period_start_day, timezone")
+    .select("id, name, currency_code, period_start_day, timezone, share_total_income_with_members")
     .eq("id", membership.household_id)
     .maybeSingle();
   if (!household) redirect("/app");
@@ -63,7 +63,7 @@ export default async function PlanPage() {
         .order("created_at", { ascending: true }),
       supabase
         .from("period_section_budgets")
-        .select("id, section_id, section_name_snapshot, planned_amount")
+        .select("id, section_id, section_name_snapshot, planned_amount, budget_sections(visibility_scope, member_access)")
         .eq("period_id", period.id)
         .order("created_at", { ascending: true }),
       supabase
@@ -88,7 +88,17 @@ export default async function PlanPage() {
           ? activeTemplateIds.has(commitment.fixed_commitment_template_id)
           : false,
       }))}
-      sections={sections ?? []}
+      sections={(sections ?? []).map((section) => {
+        const meta = Array.isArray(section.budget_sections) ? section.budget_sections[0] : section.budget_sections;
+        return {
+          id: section.id,
+          section_id: section.section_id,
+          section_name_snapshot: section.section_name_snapshot,
+          planned_amount: section.planned_amount,
+          visibility_scope: meta?.visibility_scope ?? "owner_only",
+          member_access: meta?.member_access ?? "view",
+        };
+      })}
     />
   );
 }

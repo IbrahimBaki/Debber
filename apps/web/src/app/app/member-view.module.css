@@ -1,0 +1,9 @@
+.statusBadge { display: inline-flex; align-items: center; min-height: 1.6rem; padding: 0 var(--space-2); border-radius: var(--radius-pill); font-size: .74rem; font-weight: 750; background: var(--ui-neutral-soft); color: var(--ui-text-muted); }
+.statusBadge[data-status="open"] { background: var(--ui-success-soft); color: var(--ui-success-text); }
+.statusBadge[data-status="draft"] { background: var(--ui-warning-soft); color: var(--ui-warning); }
+
+.incomeLine { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid rgb(250 245 239 / .18); font-size: .84rem; color: #c0cbd3; }
+.incomeLine .amount { font-size: .92rem; color: #fffaf5; }
+.incomeLine .amount small { color: #c0cbd3; }
+
+.sectionsHeading { margin: 0 0 var(--space-3); font-size: 1.05rem; }

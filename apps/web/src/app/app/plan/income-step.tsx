@@ -1,8 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 
-import { addIncomeItem, deleteIncomeItem, updateIncomeItem, type PlanActionState } from "./actions";
+import {
+  addIncomeItem,
+  deleteIncomeItem,
+  setTotalIncomeSharing,
+  updateIncomeItem,
+  type PlanActionState,
+} from "./actions";
 import { Amount } from "./amount";
 import { formatAmount } from "./format";
 import { Icon } from "./icons";
@@ -109,14 +115,59 @@ function AddIncomeForm({ periodId, currencyCode }: { periodId: string; currencyC
   );
 }
 
+function TotalIncomeSharingControl({ householdId, enabled }: { householdId: string; enabled: boolean }) {
+  const [state, formAction, pending] = useActionState(setTotalIncomeSharing, initialState);
+  const formRef = useRef<HTMLFormElement>(null);
+  const switchId = useId();
+  const hintId = `${switchId}-hint`;
+
+  return (
+    <section className={styles.sharingPanel} aria-labelledby={`${switchId}-title`}>
+      <h3 id={`${switchId}-title`} className={styles.sharingPanelTitle}>المشاركة</h3>
+      <form ref={formRef} action={formAction}>
+        <input type="hidden" name="householdId" value={householdId} />
+        <label className={styles.switchRow}>
+          <span className={styles.switchLabelText}>
+            <strong>مشاركة إجمالي الدخل</strong>
+            <span className={styles.switchDescription}>
+              {enabled ? "الأعضاء يقدروا يشوفوا إجمالي الدخل فقط." : "إجمالي الدخل مش ظاهر للأعضاء."}
+            </span>
+          </span>
+          <span className={styles.switchControl}>
+            <input
+              type="checkbox"
+              name="enabled"
+              value="true"
+              defaultChecked={enabled}
+              disabled={pending}
+              aria-describedby={hintId}
+              onChange={() => formRef.current?.requestSubmit()}
+            />
+            <span className={styles.switchTrack} aria-hidden="true">
+              <span className={styles.switchThumb} />
+            </span>
+          </span>
+        </label>
+        <p id={hintId} className={styles.fieldHint}>تفاصيل مصادر الدخل بتفضل خاصة دايمًا، حتى مع تفعيل المشاركة.</p>
+        {pending ? <p role="status" className={styles.fieldHint}>جارٍ الحفظ…</p> : null}
+        {state.error ? <p className={styles.rowError} role="alert">{state.error}</p> : null}
+      </form>
+    </section>
+  );
+}
+
 export function IncomeStep({
   periodId,
   currencyCode,
   income,
+  householdId,
+  shareTotalIncomeWithMembers,
 }: {
   periodId: string;
   currencyCode: string;
   income: IncomeItem[];
+  householdId: string;
+  shareTotalIncomeWithMembers: boolean;
 }) {
   const total = income.reduce((sum, item) => sum + item.planned_amount, 0);
 
@@ -147,6 +198,8 @@ export function IncomeStep({
       </div>
 
       <AddIncomeForm periodId={periodId} currencyCode={currencyCode} />
+
+      <TotalIncomeSharingControl householdId={householdId} enabled={shareTotalIncomeWithMembers} />
     </section>
   );
 }

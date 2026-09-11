@@ -150,6 +150,38 @@
 .openNotice { display: flex; align-items: center; justify-content: center; gap: .4rem; padding: var(--space-4); text-align: center; background: var(--ui-success-soft); color: var(--ui-success-text); border-radius: var(--radius-md); }
 .openNotice p { margin: 0; font-size: .88rem; font-weight: 700; }
 
+/* Sharing controls (household total-income toggle, per-section sharing mode) */
+.sharingPanel { display: grid; gap: var(--space-2); padding: var(--space-4); background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: var(--radius-md); }
+.sharingPanelTitle { margin: 0; font-size: .92rem; }
+
+.switchRow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); cursor: pointer; }
+.switchLabelText { display: grid; gap: .2rem; }
+.switchLabelText strong { font-size: .92rem; }
+.switchDescription { color: var(--ui-text-muted); font-size: .8rem; line-height: 1.5; }
+.switchControl { position: relative; flex: 0 0 auto; display: inline-flex; align-items: center; }
+.switchControl input { position: absolute; inset: 0; z-index: 1; width: 3.25rem; height: 1.85rem; margin: 0; opacity: 0; cursor: pointer; }
+.switchTrack { position: relative; width: 3.25rem; height: 1.85rem; background: var(--ui-border-strong); border-radius: var(--radius-pill); transition: background var(--duration-fast) var(--ease-out); }
+.switchThumb { position: absolute; top: .2rem; inset-inline-start: .2rem; width: 1.45rem; height: 1.45rem; background: #fffaf5; border-radius: 50%; box-shadow: var(--shadow-float); transition: inset-inline-start var(--duration-fast) var(--ease-out); }
+.switchControl input:checked + .switchTrack { background: var(--ui-brand); }
+.switchControl input:checked + .switchTrack .switchThumb { inset-inline-start: calc(100% - 1.65rem); }
+.switchControl input:focus-visible + .switchTrack { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
+
+.sectionEntry + .sectionEntry { border-top: 1px solid var(--ui-border); }
+.sectionSharing { padding: 0 var(--space-4) var(--space-4); display: grid; gap: var(--space-2); }
+.sharingGroup { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); padding: 0; border: 0; }
+.sharingLegend { grid-column: 1 / -1; padding: 0; font-weight: 800; font-size: .82rem; }
+.sharingOption, .sharingOptionSelected { position: relative; display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 var(--space-2); text-align: center; font-size: .78rem; font-weight: 700; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: var(--radius-sm); cursor: pointer; }
+.sharingOptionSelected { border-color: var(--ui-brand); background: color-mix(in srgb, var(--dabber-sand) 44%, white); box-shadow: inset 0 0 0 1px var(--ui-brand); }
+.sharingOption input, .sharingOptionSelected input { position: absolute; opacity: 0; }
+.sharingOption:focus-within, .sharingOptionSelected:focus-within { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
+
+.sharingConfirm { display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--ui-warning-soft); border-radius: var(--radius-md); }
+.sharingConfirm > p { margin: 0; font-size: .84rem; font-weight: 650; color: var(--ui-warning); line-height: 1.6; }
+.sharingConfirm:focus { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
+.sharingConfirmActions { display: flex; gap: var(--space-2); }
+.confirmSharingButton { min-height: 2.5rem; padding-inline: var(--space-3); border: 0; border-radius: var(--radius-pill); background: var(--ui-brand); color: #fffaf5; font: inherit; font-size: .82rem; font-weight: 800; cursor: pointer; }
+.confirmSharingButton:disabled { opacity: .65; cursor: wait; }
+
 @media (min-width: 48rem) {
   .content { max-width: 72rem; padding: var(--space-8); }
   .planGrid { grid-template-columns: minmax(0, 1.4fr) minmax(20rem, 1fr); align-items: start; }
@@ -159,4 +191,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .stepPill, .stepPillActive, .addButton, .primaryButton { transition: none; }
+  .switchTrack, .switchThumb { transition: none; }
 }

@@ -256,6 +256,48 @@ export async function updateSectionAllocation(_previousState: PlanActionState, f
   return initialState;
 }
 
+// ---------- Sharing ----------
+
+export async function setTotalIncomeSharing(_previousState: PlanActionState, formData: FormData): Promise<PlanActionState> {
+  const { supabase } = await requireSession();
+  const householdId = parseId(formData.get("householdId"));
+  if (!householdId) return { error: "تعذر التعرف على البيت. حدّث الصفحة." };
+  const enabled = formData.get("enabled") === "true";
+
+  const { error } = await supabase
+    .from("households")
+    .update({ share_total_income_with_members: enabled })
+    .eq("id", householdId);
+  if (error) return { error: friendlyError(error, "تعذر حفظ إعداد المشاركة الآن.") };
+
+  revalidatePath("/app/plan");
+  revalidatePath("/app");
+  return initialState;
+}
+
+const sharingModes = new Set(["private", "shared_view", "shared_contribute"]);
+
+export async function updateSectionSharing(_previousState: PlanActionState, formData: FormData): Promise<PlanActionState> {
+  const { supabase } = await requireSession();
+  const sectionId = parseId(formData.get("sectionId"));
+  const mode = String(formData.get("mode") ?? "");
+  if (!sectionId) return { error: "تعذر التعرف على القسم. حدّث الصفحة." };
+  if (!sharingModes.has(mode)) return { error: "اختر أحد خيارات المشاركة المتاحة." };
+
+  const visibilityScope = mode === "private" ? "owner_only" : "household";
+  const memberAccess = mode === "shared_contribute" ? "contribute" : "view";
+
+  const { error } = await supabase
+    .from("budget_sections")
+    .update({ visibility_scope: visibilityScope, member_access: memberAccess })
+    .eq("id", sectionId);
+  if (error) return { error: friendlyError(error, "تعذر حفظ إعداد مشاركة القسم الآن.") };
+
+  revalidatePath("/app/plan");
+  revalidatePath("/app");
+  return initialState;
+}
+
 // ---------- Lifecycle ----------
 
 export async function startMonth(_previousState: PlanActionState, formData: FormData): Promise<PlanActionState> {

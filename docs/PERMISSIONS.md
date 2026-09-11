@@ -52,6 +52,10 @@ For budget sections, `member_access` separately controls whether a visible membe
 - A non-member of the period's household always receives `not_authorized` (`42501`), regardless of the flag — never `NULL`, so a rejected caller can never be mistaken for a member with sharing off.
 - Enabling this flag never exposes individual `income_sources` or `period_income_items` rows to a Member; their existing `owner_only`-by-default RLS is untouched by this feature.
 
+### 3.2 Section sharing modes (MVP Web UI)
+
+The Owner's `/app/plan` Sections step exposes exactly three sharing modes over the existing `visibility_scope`/`member_access` columns: `خاص بيا` (`owner_only`), `مشترك — مشاهدة` (`household`/`view`), and `مشترك — مساهمة` (`household`/`contribute`). `custom` is not offered by this control and is never silently rewritten to one of the three modes; an existing `custom` section renders as a plain, non-destructive unsupported state until the Owner explicitly picks one of the three. Because MVP evaluates section access against **current** authorization (see §4 below), broadening a section from `owner_only` (or an existing `custom` grant) into either `household` mode can make that section's previously recorded transactions newly visible to Members — the UI shows a lightweight confirmation before that specific transition, and only that one; narrowing access, or moving between the two `household` submodes, applies immediately.
+
 ## 4. No-inference rules
 
 - Member dashboards never compute global totals from hidden inputs.

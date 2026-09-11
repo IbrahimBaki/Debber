@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
-import { addSection, updateSectionAllocation, type PlanActionState } from "./actions";
+import { addSection, updateSectionAllocation, updateSectionSharing, type PlanActionState } from "./actions";
 import { Amount } from "./amount";
 import { formatAmount } from "./format";
 import { Icon } from "./icons";
@@ -10,7 +10,122 @@ import { MoneyInput } from "./money-input";
 import styles from "./plan.module.css";
 import { useAddForm } from "./use-add-form";
 
-export type SectionAllocation = { id: string; section_id: string; section_name_snapshot: string; planned_amount: number };
+export type SectionAllocation = {
+  id: string;
+  section_id: string;
+  section_name_snapshot: string;
+  planned_amount: number;
+  visibility_scope: "owner_only" | "household" | "custom";
+  member_access: "view" | "contribute";
+};
+
+type SharingMode = "private" | "shared_view" | "shared_contribute";
+
+function currentSharingMode(item: SectionAllocation): SharingMode | "custom" {
+  if (item.visibility_scope === "household") return item.member_access === "contribute" ? "shared_contribute" : "shared_view";
+  if (item.visibility_scope === "owner_only") return "private";
+  return "custom";
+}
+
+const modeLabels: Record<SharingMode, string> = {
+  private: "خاص بيا",
+  shared_view: "مشترك — مشاهدة",
+  shared_contribute: "مشترك — مساهمة",
+};
+
+const modeHints: Record<SharingMode, string> = {
+  private: "خاص: القسم ده يظهر لك بس.",
+  shared_view: "مشاهدة: يقدر يشوف المخصص والمصروف والمتبقي.",
+  shared_contribute: "مساهمة: يقدر يشوف القسم ويسجل فيه مصروفات.",
+};
+
+function SectionSharingControl({ item }: { item: SectionAllocation }) {
+  const current = currentSharingMode(item);
+  const [confirmMode, setConfirmMode] = useState<SharingMode | null>(null);
+  const [state, formAction, pending] = useActionState(updateSectionSharing, initialState);
+  const formRef = useRef<HTMLFormElement>(null);
+  const modeInputRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLDivElement>(null);
+
+  // A confirmed mode change revalidates the page and this component re-renders with a new
+  // `current`; clear any pending confirmation for the resolved mode during render (the React-
+  // recommended way to reset state on a prop change) rather than in an effect.
+  const [confirmedFor, setConfirmedFor] = useState(current);
+  if (current !== confirmedFor) {
+    setConfirmedFor(current);
+    setConfirmMode(null);
+  }
+
+  useEffect(() => {
+    if (confirmMode) confirmRef.current?.focus();
+  }, [confirmMode]);
+
+  function submitMode(mode: SharingMode) {
+    if (modeInputRef.current) modeInputRef.current.value = mode;
+    formRef.current?.requestSubmit();
+  }
+
+  function handleChoose(mode: SharingMode) {
+    if (mode === current) return;
+    // Broadening from a scope a Member cannot currently see (private, or an unsupported
+    // custom grant) into either shared mode can also expose that section's previously
+    // recorded historical data under the MVP's live-authorization model -- see D-031.
+    const broadening = item.visibility_scope !== "household" && mode !== "private";
+    if (broadening) setConfirmMode(mode);
+    else submitMode(mode);
+  }
+
+  return (
+    <div className={styles.sectionSharing}>
+      <form ref={formRef} action={formAction}>
+        <input type="hidden" name="sectionId" value={item.section_id} />
+        <input ref={modeInputRef} type="hidden" name="mode" defaultValue={current === "custom" ? "" : current} />
+      </form>
+      <fieldset className={styles.sharingGroup} disabled={pending}>
+        <legend className={styles.sharingLegend}>مشاركة القسم</legend>
+        {(Object.keys(modeLabels) as SharingMode[]).map((mode) => (
+          <label key={mode} className={current === mode ? styles.sharingOptionSelected : styles.sharingOption}>
+            <input
+              type="radio"
+              name={`sharing-${item.id}`}
+              checked={current === mode}
+              onChange={() => handleChoose(mode)}
+              disabled={pending}
+            />
+            {modeLabels[mode]}
+          </label>
+        ))}
+      </fieldset>
+      {current === "custom" ? (
+        <p className={styles.rowNote}>هذا القسم بإعداد مشاركة غير مدعوم في هذا العرض. اختر أحد الخيارات أعلاه لاستبداله.</p>
+      ) : (
+        <p className={styles.fieldHint}>{modeHints[current]}</p>
+      )}
+      {confirmMode ? (
+        <div ref={confirmRef} tabIndex={-1} className={styles.sharingConfirm}>
+          <p>مشاركة القسم هتخلي الشريك يقدر يشوف بيانات القسم السابقة كمان.</p>
+          <div className={styles.sharingConfirmActions}>
+            <button
+              type="button"
+              className={styles.confirmSharingButton}
+              onClick={() => {
+                submitMode(confirmMode);
+                setConfirmMode(null);
+              }}
+              disabled={pending}
+            >
+              {pending ? "جارٍ الحفظ…" : "تأكيد المشاركة"}
+            </button>
+            <button type="button" className={styles.cancelButton} onClick={() => setConfirmMode(null)} disabled={pending}>
+              إلغاء
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {state.error ? <p className={styles.rowError} role="alert">{state.error}</p> : null}
+    </div>
+  );
+}
 
 const initialState: PlanActionState = {};
 
@@ -131,7 +246,10 @@ export function SectionsStep({
       {sections.length ? (
         <div className={styles.listSurface}>
           {sections.map((item) => (
-            <SectionRow key={item.id} item={item} currencyCode={currencyCode} />
+            <div key={item.id} className={styles.sectionEntry}>
+              <SectionRow item={item} currencyCode={currencyCode} />
+              <SectionSharingControl item={item} />
+            </div>
           ))}
         </div>
       ) : (
