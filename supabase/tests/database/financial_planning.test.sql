@@ -70,6 +70,12 @@ update public.period_income_items set planned_amount = 0 where period_id='320000
 update public.period_income_items set planned_amount = 20000 where name_snapshot='راتب';
 select public.set_period_fixed_commitment_planned_amount('35000000-0000-0000-0000-000000000001', 8000);
 select is((select planned_deficit from public.get_owner_period_planning_summary('32000000-0000-0000-0000-000000000001')), 2000::numeric, 'planned deficit is represented and not rejected');
+
+-- Fixed-commitment operational mutations (Paid/Skip/Unskip) are Open-only as of this session's
+-- hardening. Opening the period here does not affect any of the derived summary math above or
+-- below (status is not one of its inputs); it only unlocks the operational RPCs below.
+select public.set_budget_period_status('32000000-0000-0000-0000-000000000001', 'open');
+
 select public.set_period_fixed_commitment_skipped('35000000-0000-0000-0000-000000000001', true, 'اختبار');
 select is((select total_planned_commitments from public.get_owner_period_planning_summary('32000000-0000-0000-0000-000000000001')), 0::numeric, 'skipped fixed commitment is excluded from this month planning total');
 select public.set_period_fixed_commitment_skipped('35000000-0000-0000-0000-000000000001', false, null);

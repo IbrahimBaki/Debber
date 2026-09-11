@@ -28,7 +28,15 @@ export type Commitment = {
 
 const initialState: PlanActionState = {};
 
-function CommitmentRow({ item, currencyCode }: { item: Commitment; currencyCode: string }) {
+function CommitmentRow({
+  item,
+  currencyCode,
+  canOperate,
+}: {
+  item: Commitment;
+  currencyCode: string;
+  canOperate: boolean;
+}) {
   const [editing, setEditing] = useState(false);
   const [amountState, amountAction, amountPending] = useActionState(updateCommitmentAmount, initialState);
   const [skipState, skipAction, skipPending] = useActionState(setCommitmentSkipped, initialState);
@@ -63,13 +71,15 @@ function CommitmentRow({ item, currencyCode }: { item: Commitment; currencyCode:
       </div>
       <div className={styles.rowActions}>
         <button type="button" className={styles.textAction} onClick={() => setEditing(true)}>تعديل</button>
-        <form action={skipAction}>
-          <input type="hidden" name="id" value={item.id} />
-          <input type="hidden" name="skip" value={skipped ? "false" : "true"} />
-          <button type="submit" className={styles.textAction} disabled={skipPending}>
-            {skipped ? "إلغاء التخطي" : "تخطي هذا الشهر"}
-          </button>
-        </form>
+        {canOperate ? (
+          <form action={skipAction}>
+            <input type="hidden" name="id" value={item.id} />
+            <input type="hidden" name="skip" value={skipped ? "false" : "true"} />
+            <button type="submit" className={styles.textAction} disabled={skipPending}>
+              {skipped ? "إلغاء التخطي" : "تخطي هذا الشهر"}
+            </button>
+          </form>
+        ) : null}
         {isRecurring && item.isRecurringActive ? (
           <form action={stopAction}>
             <input type="hidden" name="templateId" value={item.fixed_commitment_template_id ?? ""} />
@@ -142,10 +152,12 @@ export function CommitmentsStep({
   periodId,
   currencyCode,
   commitments,
+  canOperate,
 }: {
   periodId: string;
   currencyCode: string;
   commitments: Commitment[];
+  canOperate: boolean;
 }) {
   const total = commitments.filter((item) => item.status !== "skipped").reduce((sum, item) => sum + item.planned_amount, 0);
 
@@ -160,7 +172,7 @@ export function CommitmentsStep({
       {commitments.length ? (
         <div className={styles.listSurface}>
           {commitments.map((item) => (
-            <CommitmentRow key={item.id} item={item} currencyCode={currencyCode} />
+            <CommitmentRow key={item.id} item={item} currencyCode={currencyCode} canOperate={canOperate} />
           ))}
         </div>
       ) : (

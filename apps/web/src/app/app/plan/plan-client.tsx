@@ -112,7 +112,9 @@ export function PlanClient({
                 shareTotalIncomeWithMembers={household.share_total_income_with_members}
               />
             ) : null}
-            {step === "commitments" ? <CommitmentsStep periodId={period.id} currencyCode={currencyCode} commitments={commitments} /> : null}
+            {step === "commitments" ? (
+              <CommitmentsStep periodId={period.id} currencyCode={currencyCode} commitments={commitments} canOperate={mode === "open"} />
+            ) : null}
             {step === "budget" ? <BudgetStep periodId={period.id} currencyCode={currencyCode} summary={safeSummary} /> : null}
             {step === "sections" ? (
               <SectionsStep periodId={period.id} currencyCode={currencyCode} sections={sections} spendingBudget={safeSummary.spending_budget} />

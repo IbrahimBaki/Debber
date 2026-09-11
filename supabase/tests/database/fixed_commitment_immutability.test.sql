@@ -80,6 +80,11 @@ select lives_ok(
 );
 select is((select planned_amount from public.period_fixed_commitments where id = '54000000-0000-0000-0000-000000000001'), 11000::numeric, 'planned_amount mutation took effect');
 
+-- Fixed-commitment operational mutations (Paid/Skip/Unskip) are Open-only as of this session's
+-- hardening; the planning RPC above deliberately still ran while Draft. Open the period before
+-- exercising the operational RPCs below so this file keeps testing immutability, not lifecycle.
+select public.set_budget_period_status('52000000-0000-0000-0000-000000000001', 'open');
+
 select lives_ok(
   $$select public.set_period_fixed_commitment_skipped('54000000-0000-0000-0000-000000000001', true, 'اختبار')$$,
   'set_period_fixed_commitment_skipped(true) still works after adding immutability coverage'
