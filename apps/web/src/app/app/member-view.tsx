@@ -1,10 +1,10 @@
-import Link from "next/link";
-
 import { Amount } from "./plan/amount";
 import { formatDateRange } from "./plan/format";
 import { Icon } from "./plan/icons";
 import planStyles from "./plan/plan.module.css";
 import type { MemberMonthlyView } from "./member-data";
+import { SectionCard } from "./section-card";
+import sectionCardStyles from "./section-card.module.css";
 import styles from "./member-view.module.css";
 
 function StatusBadge({ status }: { status: "draft" | "open" | "closed" }) {
@@ -118,7 +118,7 @@ export function MemberMonthlyViewPanel({
               <Amount value={sharedSummary.spent} currencyCode={currencyCode} />
             </div>
             <div className={`${planStyles.relationRow} ${planStyles.relationResult}`}>
-              <span>المتبقي</span>
+              <span>المتبقي في الأقسام المشتركة</span>
               <Amount
                 value={sharedSummary.remaining}
                 currencyCode={currencyCode}
@@ -131,29 +131,9 @@ export function MemberMonthlyViewPanel({
             <h2 id="sections-title" className={styles.sectionsHeading}>
               الأقسام
             </h2>
-            <div className={planStyles.listSurface}>
+            <div className={sectionCardStyles.list}>
               {sections.map((section) => (
-                <div key={section.id} className={planStyles.itemRow}>
-                  <div className={planStyles.itemInfo}>
-                    <strong>{section.name}</strong>
-                    <span className={planStyles.itemMeta}>
-                      المخصص <Amount value={section.allocated} currencyCode={currencyCode} /> · المصروف{" "}
-                      <Amount value={section.spent} currencyCode={currencyCode} /> · المتبقي{" "}
-                      <Amount value={section.remaining} currencyCode={currencyCode} tone={section.remaining < 0 ? "deficit" : undefined} />
-                    </span>
-                    {section.overspent ? (
-                      <p className={planStyles.warningNote}>
-                        <Icon name="alert" size={14} />
-                        تجاوز المخصص بـ <Amount value={Math.abs(section.remaining)} currencyCode={currencyCode} />
-                      </p>
-                    ) : null}
-                  </div>
-                  {view.status === "open" && section.canContribute ? (
-                    <Link href="/app/expenses/new" className={planStyles.textAction}>
-                      إضافة مصروف
-                    </Link>
-                  ) : null}
-                </div>
+                <SectionCard key={section.id} section={section} currencyCode={currencyCode} />
               ))}
             </div>
           </section>

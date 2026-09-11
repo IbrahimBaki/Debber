@@ -25,16 +25,18 @@ export function ExpenseFormClient({
   periodStart,
   today,
   sections,
+  initialSectionId,
 }: {
   currencyCode: string;
   periodStart: string;
   today: string;
   sections: EligibleSection[];
+  initialSectionId?: string;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<"form" | "success" | "voided">("form");
   const [transactionId, setTransactionId] = useState(newTransactionId);
-  const [sectionId, setSectionId] = useState(sections[0]?.id ?? "");
+  const [sectionId, setSectionId] = useState(initialSectionId ?? sections[0]?.id ?? "");
   const [amountResetKey, setAmountResetKey] = useState(0);
   const [lastResult, setLastResult] = useState<ExpenseActionState["success"] | null>(null);
   const [confirmingVoid, setConfirmingVoid] = useState(false);

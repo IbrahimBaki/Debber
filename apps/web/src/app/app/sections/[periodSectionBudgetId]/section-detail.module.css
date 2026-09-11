@@ -1,0 +1,35 @@
+.page { min-height: 100dvh; padding-bottom: var(--space-8); }
+.content { width: 100%; max-width: 34rem; margin: 0 auto; padding: var(--space-5); }
+
+.header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding-block: var(--space-3) var(--space-4); }
+.header h1 { margin: 0; font-size: 1.15rem; text-align: center; overflow-wrap: anywhere; flex: 1; }
+.backLink { display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; flex: 0 0 auto; border-radius: var(--radius-pill); color: var(--ui-text); text-decoration: none; }
+.backLink .icon { transform: rotate(180deg); }
+.backLink:hover { background: var(--dabber-sand); }
+
+/* Compact financial summary: the remaining figure is the visually primary element, spent and
+   allocated are supporting context underneath. */
+.summary { display: grid; justify-items: center; gap: var(--space-1); padding: var(--space-5) var(--space-4); text-align: center; background: var(--ui-surface-raised); border: 1px solid var(--ui-border); border-radius: var(--radius-lg); }
+.summaryLabel { margin: 0; color: var(--ui-text-muted); font-size: .82rem; font-weight: 700; }
+.summaryAmount { font-size: clamp(2rem, 9vw, 2.6rem); }
+.summarySupport { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--ui-border); color: var(--ui-text-muted); font-size: .82rem; }
+.summarySupport .amount { font-size: .86rem; color: var(--ui-text); }
+
+.addButton { display: flex; align-items: center; justify-content: center; gap: .4rem; min-height: 3.25rem; margin-top: var(--space-4); color: var(--ui-text-on-dark); text-decoration: none; font: inherit; font-weight: 800; background: var(--ui-brand); border-radius: var(--radius-pill); box-shadow: var(--shadow-float); }
+.addButton:hover { background: var(--ui-brand-strong); }
+
+.expensesHeading { margin: var(--space-6) 0 var(--space-3); font-size: 1.05rem; }
+
+.expenseList { list-style: none; margin: 0; padding: 0; overflow: hidden; border: 1px solid var(--ui-border); border-radius: var(--radius-md); background: var(--ui-surface); }
+.expenseRow { display: flex; align-items: center; gap: var(--space-3); min-height: 3.75rem; padding: var(--space-3) var(--space-4); }
+.expenseRow + .expenseRow { border-top: 1px solid var(--ui-border); }
+.expenseAmount { flex: 0 0 auto; font-size: 1.02rem; }
+.expenseDetails { min-width: 0; display: grid; gap: .1rem; }
+.expenseDescription { margin: 0; overflow-wrap: anywhere; font-size: .86rem; }
+.expenseDate { margin: 0; color: var(--ui-text-muted); font-size: .76rem; }
+
+.emptyStateAction { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding-inline: var(--space-4); margin-top: var(--space-1); color: var(--ui-brand-strong); text-decoration: none; font: inherit; font-weight: 750; border: 1px solid currentColor; border-radius: var(--radius-pill); }
+
+@media (min-width: 48rem) {
+  .content { padding-top: var(--space-8); }
+}

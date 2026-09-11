@@ -23,7 +23,11 @@ function StateCard({ icon = "clock", title, body, action }: { icon?: IconName; t
   );
 }
 
-export default async function NewExpensePage() {
+export default async function NewExpensePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string }>;
+}) {
   const supabase = await createClient();
   const { data: claims, error: claimsError } = await supabase.auth.getClaims();
   if (claimsError || !claims?.claims?.sub) redirect("/login?next=/app/expenses/new");
@@ -115,6 +119,15 @@ export default async function NewExpensePage() {
     );
   }
 
+  // A query-param preselection is only a UX hint (§10): it must match a section the caller's
+  // own eligibility already returned, or it is silently ignored and the normal default
+  // (first eligible section) applies. record_expense(...) re-derives authorization itself
+  // regardless of what gets preselected here.
+  const { section: requestedSection } = await searchParams;
+  const initialSectionId = eligibility.sections.some((section) => section.id === requestedSection)
+    ? requestedSection
+    : undefined;
+
   return (
     <main className={styles.page} dir="rtl">
       <div className={styles.content}>
@@ -124,6 +137,7 @@ export default async function NewExpensePage() {
           periodStart={eligibility.periodStart}
           today={eligibility.today}
           sections={eligibility.sections}
+          initialSectionId={initialSectionId}
         />
       </div>
     </main>

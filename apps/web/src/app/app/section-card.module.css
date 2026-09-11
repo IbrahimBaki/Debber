@@ -1,0 +1,36 @@
+/* Contiguous list surface for section rows -- matches apps/web/DESIGN.md's warm white
+   bordered surface + contiguous rows rule; never a deck of separated cards. */
+.list { overflow: hidden; border-radius: var(--radius-md); border: 1px solid var(--ui-border); background: var(--ui-surface); }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 4.5rem;
+  padding: var(--space-3) var(--space-4);
+  color: inherit;
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.row + .row { border-top: 1px solid var(--ui-border); }
+.row:hover { background: var(--dabber-sand); }
+.row:focus-visible { outline: 3px solid var(--ui-focus); outline-offset: -2px; }
+.chevron { flex: 0 0 auto; display: inline-flex; color: var(--ui-text-muted); transform: scaleX(-1); }
+
+.info { flex: 1; min-width: 0; display: grid; gap: .3rem; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.top strong { font-size: .94rem; overflow-wrap: anywhere; }
+
+.remainingLine { display: flex; align-items: baseline; gap: .3rem; flex: 0 0 auto; }
+.remainingLabel { color: var(--ui-text-muted); font-size: .74rem; font-weight: 700; }
+.remainingAmount { font-size: 1.05rem; }
+
+.track { display: block; height: .4rem; border-radius: var(--radius-pill); background: var(--dabber-sand); overflow: hidden; }
+.trackFill { display: block; height: 100%; border-radius: inherit; background: var(--ui-brand); }
+.trackFill[data-overspent] { background: var(--ui-warning); }
+
+.meta { margin: 0; color: var(--ui-text-muted); font-size: .76rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .row { transition: none; }
+}
