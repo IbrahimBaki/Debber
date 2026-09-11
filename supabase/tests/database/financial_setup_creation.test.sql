@@ -59,8 +59,13 @@ select is((select count(*)::integer from public.period_fixed_commitments where f
 select is((select count(*)::integer from public.audit_events where entity_id=:'recurring_commitment_id' and event_type='fixed_commitment.created'), 1, 'retry does not duplicate the audit event');
 
 -- ensure_budget_period() must not create a duplicate current snapshot after this operation.
+-- Uses the real wall-clock current period (rather than the fixed test period ids) so this
+-- assertion genuinely exercises the interaction instead of depending on "today" happening to
+-- fall inside period 001's date range.
+select public.ensure_budget_period('41000000-0000-0000-0000-000000000001') as live_period_id \gset
+select public.create_recurring_fixed_commitment(:'live_period_id', 'اختبار الفترة الحية', 777, null, '43900000-0000-0000-0000-000000000001');
 select public.ensure_budget_period('41000000-0000-0000-0000-000000000001');
-select is((select count(*)::integer from public.period_fixed_commitments where period_id='42000000-0000-0000-0000-000000000001' and fixed_commitment_template_id='43000000-0000-0000-0000-000000000001'), 1, 'ensure_budget_period does not duplicate the current snapshot for an already-created template');
+select is((select count(*)::integer from public.period_fixed_commitments where period_id=:'live_period_id' and fixed_commitment_template_id='43900000-0000-0000-0000-000000000001'), 1, 'ensure_budget_period does not duplicate the current snapshot for an already-created template (live period)');
 
 -- Future period generation continues to inherit the recurring template.
 select public.ensure_budget_period('41000000-0000-0000-0000-000000000001');
