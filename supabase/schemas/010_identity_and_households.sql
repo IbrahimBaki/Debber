@@ -17,6 +17,10 @@ create table public.households (
     check (currency_code in ('EGP', 'SAR', 'USD', 'EUR')),
   timezone text not null default 'Africa/Cairo',
   period_start_day smallint not null default 1 check (period_start_day between 1 and 31),
+  -- MVP-wide privacy setting: whether Members may see the aggregate total planned income for
+  -- a period via get_member_visible_total_income(...). Never exposes individual income rows;
+  -- see supabase/schemas/050_domain_functions.sql and docs/FINANCIAL_MODEL.md.
+  share_total_income_with_members boolean not null default false,
   archived_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

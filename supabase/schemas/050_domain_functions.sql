@@ -1379,3 +1379,57 @@ $$;
 revoke all on function public.record_expense(uuid, numeric, date, text, uuid) from public;
 revoke all on function public.record_expense(uuid, numeric, date, text, uuid) from anon, service_role;
 grant execute on function public.record_expense(uuid, numeric, date, text, uuid) to authenticated;
+
+-- MVP total-income sharing: a narrow, Member-safe aggregate. Individual period_income_items/
+-- income_sources rows are never returned to a Member through this or any other path -- their
+-- RLS policies (both owner_only-by-default in the current one-off Financial Setup pattern) are
+-- untouched. NULL means "not shared with this caller"; 0 means "shared and currently zero" --
+-- these are deliberately distinct return values, never conflated.
+create or replace function public.get_member_visible_total_income(p_period_id uuid)
+returns numeric
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_household_id uuid;
+  v_shared boolean;
+begin
+  if v_uid is null then
+    raise exception 'not_authenticated' using errcode = '42501';
+  end if;
+
+  select household_id into v_household_id
+  from public.budget_periods
+  where id = p_period_id;
+
+  if v_household_id is null then
+    raise exception 'period_not_found' using errcode = 'P0002';
+  end if;
+
+  if not public.is_household_member(v_household_id) then
+    raise exception 'not_authorized' using errcode = '42501';
+  end if;
+
+  if not public.is_household_owner(v_household_id) then
+    select share_total_income_with_members into v_shared
+    from public.households
+    where id = v_household_id;
+
+    if not coalesce(v_shared, false) then
+      return null;
+    end if;
+  end if;
+
+  return coalesce(
+    (select sum(planned_amount) from public.period_income_items where period_id = p_period_id),
+    0
+  );
+end;
+$$;
+
+revoke all on function public.get_member_visible_total_income(uuid) from public;
+revoke all on function public.get_member_visible_total_income(uuid) from anon, service_role;
+grant execute on function public.get_member_visible_total_income(uuid) to authenticated;

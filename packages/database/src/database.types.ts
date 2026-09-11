@@ -376,6 +376,7 @@ export type Database = {
           name: string
           owner_user_id: string
           period_start_day: number
+          share_total_income_with_members: boolean
           timezone: string
           updated_at: string
         }
@@ -387,6 +388,7 @@ export type Database = {
           name: string
           owner_user_id: string
           period_start_day?: number
+          share_total_income_with_members?: boolean
           timezone?: string
           updated_at?: string
         }
@@ -398,6 +400,7 @@ export type Database = {
           name?: string
           owner_user_id?: string
           period_start_day?: number
+          share_total_income_with_members?: boolean
           timezone?: string
           updated_at?: string
         }
@@ -999,6 +1002,10 @@ export type Database = {
       ensure_budget_period: {
         Args: { p_household_id: string }
         Returns: string
+      }
+      get_member_visible_total_income: {
+        Args: { p_period_id: string }
+        Returns: number
       }
       get_owner_period_planning_summary: {
         Args: { p_period_id: string }

@@ -31,7 +31,9 @@ For budget sections, `member_access` separately controls whether a visible membe
 | Capability | Owner | Member | Super Admin |
 | --- | ---: | ---: | ---: |
 | View own household | Yes | If active member | Yes via admin server |
-| View hidden owner income | Yes | No | Yes via admin server |
+| View hidden owner income (individual rows) | Yes | No | Yes via admin server |
+| View aggregate total planned income for a period | Yes | Only if `households.share_total_income_with_members = true` (else `NULL`, distinct from a real `0`) | Yes via admin server |
+| Toggle total-income sharing for the household | Yes | No | Support/admin action only |
 | Configure section budgets | Yes | No | Support/admin action only |
 | Add expense to shared contributable section | Yes | Yes | Not through user workflow |
 | Change visibility | Yes | No | Support/admin action only |
@@ -40,13 +42,23 @@ For budget sections, `member_access` separately controls whether a visible membe
 | Bypass RLS | No | No | Server Secret-Key client only |
 | Write admin audit log | No | No | Yes |
 
+### 3.1 Total income sharing (MVP)
+
+`households.share_total_income_with_members` is a single household-wide boolean, Owner-controlled, default `false`. It governs exactly one narrow read path — `get_member_visible_total_income(p_period_id)` — and nothing else:
+
+- The Owner toggles it through the existing Household `update` RLS policy (`is_household_owner(...)` / `owner_user_id = auth.uid()`); no dedicated RPC exists solely for this write.
+- Any active household member (Owner or Member) may read the boolean itself via the existing Household `select` policy — the setting's current state is not sensitive.
+- The RPC returns the real summed `planned_amount` to the Owner unconditionally, and to a Member only when the flag is `true`. `NULL` strictly means "not shared with this caller"; `0` strictly means "shared, and currently zero." These are never conflated.
+- A non-member of the period's household always receives `not_authorized` (`42501`), regardless of the flag — never `NULL`, so a rejected caller can never be mistaken for a member with sharing off.
+- Enabling this flag never exposes individual `income_sources` or `period_income_items` rows to a Member; their existing `owner_only`-by-default RLS is untouched by this feature.
+
 ## 4. No-inference rules
 
 - Member dashboards never compute global totals from hidden inputs.
 - A private fixed commitment is not represented as an unnamed hidden amount in a shared chart.
 - Shared spending totals include only the spending scope intentionally shared by that section.
 - A member cannot enumerate hidden rows by count, placeholder, route ID, search results, or error differences.
-- Historical access follows current authorization unless a future explicit historical-lock feature is designed.
+- **Historical access follows current authorization (intentionally accepted MVP limitation).** A Member's visibility of `spending_budget` and of a section's allocation/spent/remaining/overspend and transactions is evaluated against the section's *current* `visibility_scope`/`member_access`, not a point-in-time record of what was authorized when that historical period was open. If the Owner later widens or narrows a section's visibility, that change is retroactively visible (or invisible) across all of that section's historical periods, not just future ones. This is a deliberately accepted MVP simplification for launch (see D-031 in `docs/DECISIONS.md`), not an unknown bug and not something already mitigated by a historical-snapshot mechanism — no `visibility_scope_snapshot`/`member_access_snapshot` migration exists in this codebase. A dedicated historical-permission-lock feature remains explicitly deferred hardening work, to be designed and approved separately if the owner decides it is needed post-MVP.
 
 ## 5. RLS rules
 

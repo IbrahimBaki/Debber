@@ -59,6 +59,8 @@ Overspending a section allocation or the total spending budget is never blocked 
 
 The Owner-only planning summary RPC returns income, fixed commitments, and derived plan totals only to an Owner. Members retain section-level visibility under the existing RLS model and cannot obtain hidden totals that could reveal private income or commitments.
 
+The one exception is opt-in and narrow: when the Owner sets `households.share_total_income_with_members = true` (default `false`), a Member may call `get_member_visible_total_income(p_period_id)` to see the period's aggregate total planned income — never individual `income_sources`/`period_income_items` rows, which remain governed by their own unchanged `owner_only`-by-default RLS regardless of this toggle. A Member with sharing off, and any non-member, are never conflated: sharing-off returns SQL `NULL`; non-membership raises `not_authorized`. A shared-and-currently-zero period returns `0`, distinct from `NULL`. See `docs/DATABASE.md` §6.5 and `docs/PERMISSIONS.md` §3.1.
+
 Planning mutations respect the existing Draft/Open/Closed lifecycle. Snapshot rows remain historical truth: changing reusable templates does not rewrite a created month.
 
 ## Domain operations
@@ -74,6 +76,7 @@ Planning mutations respect the existing Draft/Open/Closed lifecycle. Snapshot ro
 - `create_flexible_budget_section(uuid, text, visibility_scope, section_member_access, uuid)` atomically creates a reusable flexible section and its current-period snapshot at a zero planned allocation; see `docs/DATABASE.md` §6.2.
 - `set_budget_period_status(uuid, period_status, text)` performs the Draft → Open "ابدأ الشهر" (start month) transition; the Owner may keep editing the plan afterward while the period remains Open.
 - `record_expense(uuid, numeric, date, text, uuid)` is the sole authoritative path for recording an ordinary variable expense; see "Recording a variable expense" below.
+- `get_member_visible_total_income(uuid)` returns the summed `period_income_items.planned_amount` for a period: always to the Owner, and to a Member only when `households.share_total_income_with_members = true`; see "Privacy and lifecycle" below and `docs/DATABASE.md` §6.5.
 
 ## Financial setup product decisions (post-D-027)
 

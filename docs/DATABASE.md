@@ -15,7 +15,7 @@
 | Table | Purpose |
 | --- | --- |
 | `profiles` | Application profile linked 1:1 to `auth.users`. |
-| `households` | Shared financial workspace. |
+| `households` | Shared financial workspace. Carries `share_total_income_with_members` (boolean, default `false`), the sole Owner-controlled toggle for §6.5. |
 | `household_members` | Household-level owner/member membership. |
 | `household_invitations` | Invitation lifecycle using hashed tokens. |
 | `platform_admins` | Platform-level operators; separate from household roles. |
@@ -128,6 +128,23 @@ Mutable financial fields are deliberately excluded, mirroring `monthly_items`' a
 `record_expense(p_period_section_budget_id, p_amount, p_occurred_at, p_description, p_transaction_id)` is the sole authoritative path for creating an ordinary (non-recurring-linked) `transactions` row. `public.transactions` has **no client `insert` grant**: the RLS policy that previously allowed a direct authenticated insert (`"Contributors can create ordinary transactions"`) was dropped because its only lifecycle check, `is_period_open_for_writes(...)`, is true for `draft` *or* `open` — it did not authoritatively require `open` specifically, and nothing validated `occurred_at` against the period's date range or the future. Both are now enforced inside the function (see `docs/FINANCIAL_MODEL.md`, "Recording a variable expense," for the full check sequence and idempotency mechanism, which follows the same caller-supplied-UUID pattern as §6.2).
 
 `mark_monthly_item_paid(...)` (the separate legacy linked-recurring-payment path, which inserts a `transactions` row with `monthly_item_id` set) is unaffected: it is already `security definer` and never relied on the removed policy. The `transactions` `select` and `update` grants/policies are also unchanged; only ordinary-transaction `insert` was narrowed.
+
+## 6.5 Member total-income sharing (MVP)
+
+`households.share_total_income_with_members` (`boolean not null default false`) is the only schema addition for this feature — no settings table, no per-member income permission, no per-period snapshot of the flag. It requires no RLS change: the existing Household `update` policy (`is_household_owner(id)` / `owner_user_id = auth.uid()`) already has no column restriction, so the Owner toggles it through the ordinary authenticated client `update` grant. The existing Household `select` policy (`is_household_member(id)`) already lets any active member read the flag's current value along with the rest of the row — it is not sensitive on its own.
+
+`get_member_visible_total_income(p_period_id uuid) returns numeric` is the sole read path that can cross the privacy boundary this flag governs:
+
+1. Rejects an unauthenticated caller (`not_authenticated`, `42501`).
+2. Resolves the period's Household authoritatively from `budget_periods` (`period_not_found`, `P0002`, for a bogus id).
+3. Requires `is_household_member(...)` on that Household — a non-member is rejected with `not_authorized` (`42501`) **before** the sharing flag is ever consulted, so a genuine non-member can never be confused with "member, sharing disabled" (which returns `NULL`, not an error).
+4. The Owner bypasses the flag entirely and always receives the real sum.
+5. A Member receives the real sum only when `share_total_income_with_members = true`; otherwise the function returns SQL `NULL` — never `0` — which the caller must treat as "not shared," distinct from a genuine `0` total (a real, currently-empty income period for an authorized caller).
+6. The sum itself is `coalesce(sum(period_income_items.planned_amount), 0)` scoped to the exact `p_period_id`; it never touches `income_sources`.
+
+Follows the established `security definer` convention: `set search_path = ''`, fully-qualified relation names, identity from `(select auth.uid())`, `revoke all ... from public, anon, service_role`, `grant execute ... to authenticated` only. No `apps/web` code depends on a service-role client for this feature.
+
+This is a deliberate MVP scope boundary (see D-031 in `docs/DECISIONS.md`): a historical section-permission-snapshot mechanism, generic per-member income visibility, and per-period snapshots of the sharing flag itself are all explicitly deferred, not implemented here.
 
 ## 7. Money calculations
 
