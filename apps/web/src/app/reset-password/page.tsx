@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -8,6 +9,8 @@ import { PasswordField } from "@/components/auth/password-field";
 import { SubmitButton } from "@/components/auth/submit-button";
 import styles from "@/components/auth/auth.module.css";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { title: "كلمة مرور جديدة" };
 
 export default async function ResetPasswordPage() {
   const supabase = await createClient();

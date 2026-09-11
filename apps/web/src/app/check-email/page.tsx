@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import styles from "@/components/auth/auth.module.css";
+
+export const metadata: Metadata = { title: "راجع بريدك الإلكتروني" };
 
 export default async function CheckEmailPage({
   searchParams,

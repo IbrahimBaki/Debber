@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
 import { ClosedPanel } from "./closed-panel";
 import { PlanClient } from "./plan-client";
+
+export const metadata: Metadata = { title: "خطة الشهر" };
 
 export default async function PlanPage() {
   const supabase = await createClient();

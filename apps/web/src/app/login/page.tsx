@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { signIn } from "@/app/auth/actions";
@@ -7,6 +8,8 @@ import { EmailField } from "@/components/auth/email-field";
 import { PasswordField } from "@/components/auth/password-field";
 import { SubmitButton } from "@/components/auth/submit-button";
 import styles from "@/components/auth/auth.module.css";
+
+export const metadata: Metadata = { title: "تسجيل الدخول" };
 
 export default async function LoginPage({
   searchParams,

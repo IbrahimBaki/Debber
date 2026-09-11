@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -8,6 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveExpenseEligibility } from "../eligibility";
 import { ExpenseFormClient } from "./expense-form-client";
 import styles from "./expenses.module.css";
+
+export const metadata: Metadata = { title: "إضافة مصروف" };
 
 function StateCard({ icon = "clock", title, body, action }: { icon?: IconName; title: string; body: string; action?: ReactNode }) {
   return (

@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { InvitationFlow } from "@/app/app/invitations/invitation-flow";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { title: "دعوة انضمام" };
 
 export default async function InvitationsPage() {
   const supabase = await createClient();

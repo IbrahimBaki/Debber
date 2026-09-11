@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
 import { InvitePartnerForm } from "./invite-partner-form";
+
+export const metadata: Metadata = { title: "دعوة شريك" };
 
 export default async function InviteMemberPage() {
   const supabase = await createClient();

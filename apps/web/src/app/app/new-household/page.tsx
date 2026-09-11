@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { CreateHouseholdForm } from "@/app/app/new-household/create-household-form";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { title: "إنشاء بيت جديد" };
 
 export default async function NewHouseholdPage() {
   const supabase = await createClient();

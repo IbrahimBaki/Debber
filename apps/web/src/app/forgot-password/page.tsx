@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { requestPasswordReset } from "@/app/auth/actions";
@@ -6,6 +7,8 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { EmailField } from "@/components/auth/email-field";
 import { SubmitButton } from "@/components/auth/submit-button";
 import styles from "@/components/auth/auth.module.css";
+
+export const metadata: Metadata = { title: "استعادة كلمة المرور" };
 
 export default async function ForgotPasswordPage({
   searchParams,

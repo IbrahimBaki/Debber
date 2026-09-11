@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -12,6 +13,8 @@ import { MemberMonthlyViewPanel } from "./member-view";
 import { loadOwnerCommitments } from "./owner-commitments-data";
 import { OwnerCommitmentsSection } from "./owner-commitments";
 import planStyles from "./plan/plan.module.css";
+
+export const metadata: Metadata = { title: "مساحتك المشتركة" };
 
 export default async function AppPage({ searchParams }: { searchParams: Promise<{ passwordUpdated?: string }> }) {
   const supabase = await createClient();
