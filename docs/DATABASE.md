@@ -98,6 +98,20 @@ Historical names and planned values are copied to monthly tables. Current privac
 - `accept_household_invitation_by_id(uuid)` atomically validates the invitation recipient and creates an MVP `member` membership. The existing token-hash acceptance RPC remains available for invitation-link entry points.
 - `create_initial_household(...)` is the only authenticated-client Household creation operation. It is serialized and retry-safe, returns an existing active Household on retry, and relies on the existing insert trigger to create the `owner` membership transactionally.
 
+## 6.2 Financial setup creation operations
+
+`period_fixed_commitments` and `period_section_budgets` have no client `insert` grant; `fixed_commitment_templates` and `budget_sections` do, but a template/section row alone does not create the current-period snapshot the setup UI needs, and doing that as two separate browser calls is not atomic. Three narrow, Owner-authorized, `security definer` operations close this gap in one transaction each, valid only while the target period is `draft` or `open`:
+
+- `create_recurring_fixed_commitment(p_period_id, p_name, p_planned_amount, p_due_day default null, p_template_id default null)` creates a reusable `fixed_commitment_templates` row and exactly one current-period `period_fixed_commitments` snapshot linked to it.
+- `create_one_time_fixed_commitment(p_period_id, p_name, p_planned_amount, p_due_date default null, p_commitment_id default null)` creates exactly one current-period `period_fixed_commitments` snapshot with `fixed_commitment_template_id = null`; it never creates a template, so future periods never inherit it.
+- `create_flexible_budget_section(p_period_id, p_name, p_visibility_scope default 'owner_only', p_member_access default 'view', p_section_id default null)` creates a reusable `budget_sections` row (`kind = 'flexible'`) and exactly one current-period `period_section_budgets` snapshot with `planned_amount = 0`; `default_planned_amount` is never copied into that snapshot.
+
+All three derive the Household from the supplied period (never from a client-supplied Household id), require `is_household_owner(...)`, and combine the owner check with `is_period_open_for_writes(...)` into a single `not_authorized` (42501) rejection, matching the convention already used by `set_period_spending_budget(...)` and its siblings.
+
+**Idempotency.** Each operation accepts an optional caller-supplied entity UUID (`p_template_id`, `p_commitment_id`, `p_section_id`). If omitted, the function generates one. The persistent row is inserted with `on conflict (id) do nothing`; a retry with the same id returns the existing row after verifying it belongs to the same Household (a mismatch raises `template_id_conflict` / `commitment_id_conflict` / `section_id_conflict`, SQLSTATE `23505`). The current-period snapshot then relies on the *existing* natural unique keys `period_fixed_commitments(period_id, fixed_commitment_template_id)` and `period_section_budgets(period_id, section_id)` — the same keys `ensure_budget_period(...)` already uses — so a retried recurring/section creation and a subsequent `ensure_budget_period()` call can never produce a duplicate current snapshot. The one-time commitment has no template to key off, so its own row id is the idempotency key. No new idempotency table or column was introduced. Same-id-with-different-payload is treated as the same logical operation: the pre-existing row wins and the new payload is discarded, not merged.
+
+An audit event (`fixed_commitment.created` / `budget_section.created`) is written only on first creation, not on an idempotent retry, matching the pattern already used by `mark_period_fixed_commitment_paid(...)`.
+
 ## 7. Money calculations
 
 Owner planning model:

@@ -957,12 +957,42 @@ export type Database = {
         Args: { p_month: number; p_period_start_day: number; p_year: number }
         Returns: string
       }
+      create_flexible_budget_section: {
+        Args: {
+          p_member_access?: Database["public"]["Enums"]["section_member_access"]
+          p_name: string
+          p_period_id: string
+          p_section_id?: string
+          p_visibility_scope?: Database["public"]["Enums"]["visibility_scope"]
+        }
+        Returns: string
+      }
       create_initial_household: {
         Args: {
           p_currency_code: string
           p_name: string
           p_period_start_day?: number
           p_timezone?: string
+        }
+        Returns: string
+      }
+      create_one_time_fixed_commitment: {
+        Args: {
+          p_commitment_id?: string
+          p_due_date?: string
+          p_name: string
+          p_period_id: string
+          p_planned_amount: number
+        }
+        Returns: string
+      }
+      create_recurring_fixed_commitment: {
+        Args: {
+          p_due_day?: number
+          p_name: string
+          p_period_id: string
+          p_planned_amount: number
+          p_template_id?: string
         }
         Returns: string
       }

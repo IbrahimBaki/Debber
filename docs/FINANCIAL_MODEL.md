@@ -55,3 +55,14 @@ Planning mutations respect the existing Draft/Open/Closed lifecycle. Snapshot ro
 - `set_period_fixed_commitment_skipped(uuid, boolean, text)` preserves monthly skipped semantics.
 - `mark_period_fixed_commitment_paid(uuid, numeric)` records one fixed actual outflow.
 - `get_owner_period_planning_summary(uuid)` supplies the canonical Owner-only calculation.
+- `create_recurring_fixed_commitment(uuid, text, numeric, smallint, uuid)` atomically creates a reusable fixed-commitment template and its current-period snapshot; see `docs/DATABASE.md` §6.2.
+- `create_one_time_fixed_commitment(uuid, text, numeric, date, uuid)` atomically creates a this-month-only fixed-commitment snapshot with no template; see `docs/DATABASE.md` §6.2.
+- `create_flexible_budget_section(uuid, text, visibility_scope, section_member_access, uuid)` atomically creates a reusable flexible section and its current-period snapshot at a zero planned allocation; see `docs/DATABASE.md` §6.2.
+- `set_budget_period_status(uuid, period_status, text)` performs the Draft → Open "ابدأ الشهر" (start month) transition; the Owner may keep editing the plan afterward while the period remains Open.
+
+## Financial setup product decisions (post-D-027)
+
+- Financial setup ends with an explicit Owner action, "ابدأ الشهر", which transitions the period Draft → Open via `set_budget_period_status(...)`. Entering income, commitments, or section data never auto-opens a period.
+- The Owner may continue editing the plan while a period is Open, subject to existing validation and audit rules. Closed remains protected; month-closing UX is not implemented yet.
+- Income remains monthly/non-recurring only in MVP; there is no recurring-income system.
+- A new fixed commitment added during setup defaults to `يتكرر شهريًا` (monthly recurring, via `create_recurring_fixed_commitment`). The Owner may instead choose `هذا الشهر فقط` (this month only, via `create_one_time_fixed_commitment`). No weekly/yearly/custom recurrence schedules exist in MVP.
