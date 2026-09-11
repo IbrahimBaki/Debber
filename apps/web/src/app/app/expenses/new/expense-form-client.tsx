@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Amount } from "@/app/app/plan/amount";
-import { formatAmount } from "@/app/app/plan/format";
+import { currencyLabel, formatAmount } from "@/app/app/plan/format";
 import { Icon } from "@/app/app/plan/icons";
-import { currencyLabel, MoneyInput } from "@/app/app/plan/money-input";
+import { MoneyInput } from "@/app/app/plan/money-input";
 
 import { recordExpenseAction, voidExpenseAction, type ExpenseActionState } from "./actions";
 import type { EligibleSection } from "../eligibility";

@@ -1,5 +1,4 @@
-import { currencyLabel } from "./money-input";
-import { formatAmount } from "./format";
+import { currencyLabel, formatAmount } from "./format";
 import styles from "./plan.module.css";
 
 export function Amount({

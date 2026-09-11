@@ -2,18 +2,8 @@
 
 import { useId, useState } from "react";
 
+import { currencyLabel } from "./format";
 import styles from "./plan.module.css";
-
-const CURRENCY_LABELS: Record<string, string> = {
-  EGP: "ج.م",
-  SAR: "ر.س",
-  USD: "$",
-  EUR: "€",
-};
-
-export function currencyLabel(currencyCode: string) {
-  return CURRENCY_LABELS[currencyCode] ?? currencyCode;
-}
 
 const draftPattern = /^\d*\.?\d{0,2}$/;
 
