@@ -31,6 +31,7 @@ This file records owner-approved project decisions. Coding agents may rely on **
 | D-023 | APPROVED | MVP Household invitations always create the `member` role; invitations do not carry a selectable role, and co-owner/ownership-transfer functionality is deferred. Secure in-app invitation discovery and ID-based acceptance are authenticated, atomic database operations; token-based acceptance remains supported separately. |
 | D-024 | APPROVED | MVP Household currencies are exactly `EGP`, `SAR`, `USD`, and `EUR`. A Household stores one canonical uppercase currency code; unsupported or lowercase values are rejected at the database/domain layer. No currency conversion or mixed-currency Household data is supported. |
 | D-025 | APPROVED | Household `period_start_day` supports 1–31 and defaults to 1. For a month without that calendar day, the effective boundary clamps to the month’s last valid day. Periods run until the day before the next clamped boundary; existing budget-period rows remain immutable if the Household setting later changes. Initial Household creation is an atomic, retry-safe authenticated domain operation and always creates an `owner` membership. |
+| D-026 | APPROVED | During initial Household creation, the Web app auto-detects a non-empty browser IANA timezone and shows it for review. The user may change it. If detection fails, explicit timezone selection is required; the application never silently assumes a country or timezone. |
 
 ## Open decisions — stop and ask the owner
 

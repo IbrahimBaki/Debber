@@ -19,7 +19,7 @@ function readPassword(formData: FormData, name = "password") {
   return String(formData.get(name) ?? "");
 }
 
-function safeNext(value: FormDataEntryValue | null, fallback = "/auth/session") {
+function safeNext(value: FormDataEntryValue | null, fallback = "/app") {
   if (typeof value !== "string") return fallback;
 
   return value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")
@@ -150,7 +150,7 @@ export async function updatePassword(
     return { error: "تعذر تحديث كلمة المرور. حاول مرة أخرى." };
   }
 
-  redirect("/auth/session?passwordUpdated=1");
+  redirect("/app?passwordUpdated=1");
 }
 
 export async function signOut() {

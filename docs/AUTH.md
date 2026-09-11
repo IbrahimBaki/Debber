@@ -12,10 +12,10 @@ Run `npx supabase status` to find the local Mailpit URL. In the approved local s
 
 1. Signup sends a confirmation message and directs the user to `/check-email`.
 2. The confirmation template links to `/auth/confirm?token_hash=…&type=email`.
-3. The server verifies the token with `verifyOtp`, writes the SSR cookie session, and redirects to the temporary `/auth/session` route.
+3. The server verifies the token with `verifyOtp`, writes the SSR cookie session, and redirects to `/app`.
 4. Password recovery follows the same server verification route with `type=recovery`, then redirects to `/reset-password`.
 
-The temporary authenticated route exists only until a future owner-approved onboarding-routing phase. It does not create or select a household.
+`/app` now performs the server-side membership and pending-invitation routing described in `docs/ONBOARDING.md`. It does not expose financial data before the corresponding product features are implemented.
 
 ## Hosted Supabase later
 

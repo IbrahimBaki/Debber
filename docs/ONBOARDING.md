@@ -12,6 +12,8 @@ The future server-side entry router must use this order:
 2. Without an active membership, valid pending invitations for the authenticated user take priority.
 3. Only a user with neither an active membership nor a valid pending invitation is offered initial Household creation.
 
+The Web implementation uses `/app` as this server-side entry route. Unauthenticated visitors are redirected to `/login?next=/app`. `/app/invitations` and `/app/new-household` repeat the relevant server checks so a stale or manually entered nested URL cannot bypass the priority order.
+
 One pending invitation is presented for an explicit accept action. Multiple pending invitations are presented as a choice. Invitations are never auto-accepted. Acceptance of one invitation does not alter other pending invitations.
 
 ## Invitation domain operations
@@ -29,6 +31,12 @@ One pending invitation is presented for an explicit accept action. Multiple pend
 The Household insert and its existing owner-membership trigger occur in one database transaction. The creator is always the Household `owner`; this role is unrelated to Platform Super Admin. This onboarding operation does not impose a permanent one-Household-per-user rule, preserving future multi-Household product options.
 
 Authenticated browser clients do not have direct `INSERT` access to `households`; they must use this narrow domain operation.
+
+The Web form collects only the approved initial values: Household name, one supported currency, period start day, and timezone. It detects a non-empty browser IANA timezone with `Intl.DateTimeFormat().resolvedOptions().timeZone`, displays it for review, and allows a dependency-free native selection fallback. If detection fails, explicit selection is required; no location or timezone is assumed.
+
+## Current Household landing
+
+An active member is routed directly to the minimal `/app` landing placeholder. It displays only the Household name, the current user’s Household role, stored currency, and period-start day plus a deferred-setup message. It deliberately does not expose financial data or act as a budget dashboard.
 
 ## Household configuration invariants
 

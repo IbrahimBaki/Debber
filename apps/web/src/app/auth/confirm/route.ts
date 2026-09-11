@@ -33,6 +33,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(failureUrl);
   }
 
-  const destination = type === "recovery" ? "/reset-password" : "/auth/session";
+  const destination = type === "recovery" ? "/reset-password" : "/app";
   return NextResponse.redirect(authUrl(destination));
 }
