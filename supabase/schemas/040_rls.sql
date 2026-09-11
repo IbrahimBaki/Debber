@@ -247,9 +247,11 @@ with check (
   and (select public.is_period_open_for_writes(period_id))
 );
 
--- Transactions: direct inserts are for ordinary expenses only. Linked recurring payments use RPC.
+-- Transactions: ordinary (non-recurring-linked) expense creation is authoritative-only,
+-- via record_expense(...) (period-status/date-bounds/idempotency cannot be expressed safely
+-- as a plain RLS with-check). Linked recurring payments continue to use their own RPC.
+-- Neither creation path grants a direct client INSERT.
 grant select on table public.transactions to authenticated;
-grant insert (period_id, period_section_budget_id, amount, occurred_at, description, created_by) on table public.transactions to authenticated;
 grant update (period_section_budget_id, amount, occurred_at, description, updated_by) on table public.transactions to authenticated;
 create policy "Users can read transactions in visible sections"
 on public.transactions for select to authenticated
@@ -259,23 +261,6 @@ using (
     from public.period_section_budgets psb
     where psb.id = transactions.period_section_budget_id
       and (select public.can_view_section(psb.section_id))
-  )
-);
-create policy "Contributors can create ordinary transactions"
-on public.transactions for insert to authenticated
-with check (
-  monthly_item_id is null
-  and state = 'posted'
-  and voided_at is null
-  and voided_by is null
-  and created_by = (select auth.uid())
-  and (select public.is_period_open_for_writes(period_id))
-  and exists (
-    select 1
-    from public.period_section_budgets psb
-    where psb.id = transactions.period_section_budget_id
-      and psb.period_id = transactions.period_id
-      and (select public.can_contribute_to_section(psb.section_id))
   )
 );
 create policy "Owners or creators can update posted transactions before close"

@@ -1052,6 +1052,16 @@ export type Database = {
         Returns: undefined
       }
       period_household_id: { Args: { p_period_id: string }; Returns: string }
+      record_expense: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_occurred_at?: string
+          p_period_section_budget_id: string
+          p_transaction_id?: string
+        }
+        Returns: string
+      }
       remove_household_member: {
         Args: { p_household_id: string; p_user_id: string }
         Returns: undefined

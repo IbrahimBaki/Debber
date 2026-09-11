@@ -123,6 +123,12 @@ Mutable financial fields are deliberately excluded, mirroring `monthly_items`' a
 
 `period_fixed_commitments` (like `period_section_budgets`) has no client `update` grant at all, so its trigger is unreachable through ordinary RLS-governed access — its purpose is to guard the table's only write path, the `security definer` RPCs above, which run with elevated privileges that bypass table grants. Test it accordingly (directly, not through the `authenticated` role) — see `supabase/tests/database/fixed_commitment_immutability.test.sql`.
 
+## 6.4 Ordinary expense creation
+
+`record_expense(p_period_section_budget_id, p_amount, p_occurred_at, p_description, p_transaction_id)` is the sole authoritative path for creating an ordinary (non-recurring-linked) `transactions` row. `public.transactions` has **no client `insert` grant**: the RLS policy that previously allowed a direct authenticated insert (`"Contributors can create ordinary transactions"`) was dropped because its only lifecycle check, `is_period_open_for_writes(...)`, is true for `draft` *or* `open` — it did not authoritatively require `open` specifically, and nothing validated `occurred_at` against the period's date range or the future. Both are now enforced inside the function (see `docs/FINANCIAL_MODEL.md`, "Recording a variable expense," for the full check sequence and idempotency mechanism, which follows the same caller-supplied-UUID pattern as §6.2).
+
+`mark_monthly_item_paid(...)` (the separate legacy linked-recurring-payment path, which inserts a `transactions` row with `monthly_item_id` set) is unaffected: it is already `security definer` and never relied on the removed policy. The `transactions` `select` and `update` grants/policies are also unchanged; only ordinary-transaction `insert` was narrowed.
+
 ## 7. Money calculations
 
 Owner planning model:

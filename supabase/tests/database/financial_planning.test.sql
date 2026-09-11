@@ -75,10 +75,17 @@ select is((select total_planned_commitments from public.get_owner_period_plannin
 select public.set_period_fixed_commitment_skipped('35000000-0000-0000-0000-000000000001', false, null);
 select public.set_period_spending_budget('32000000-0000-0000-0000-000000000001', 10000);
 
+-- Fixture-only: direct insert as the table owner. Ordinary expense creation no longer has a
+-- direct authenticated-role INSERT grant (see record_expense(...) and expense_entry.test.sql);
+-- this file is testing the derived summary math, not the expense-creation authorization path.
+reset role;
 insert into public.transactions (period_id, period_section_budget_id, amount, created_by)
 values
  ('32000000-0000-0000-0000-000000000001','34000000-0000-0000-0000-000000000001',3500,'30000000-0000-0000-0000-000000000001'),
  ('32000000-0000-0000-0000-000000000001','34000000-0000-0000-0000-000000000002',7700,'30000000-0000-0000-0000-000000000001');
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claim.sub', '30000000-0000-0000-0000-000000000001', true);
 select is((select actual_variable_spending_total from public.get_owner_period_planning_summary('32000000-0000-0000-0000-000000000001')), 11200::numeric, 'actual variable spending may exceed the budget');
 select is((select budget_remaining from public.get_owner_period_planning_summary('32000000-0000-0000-0000-000000000001')), -1200::numeric, 'negative budget remaining is meaningful');
 select is((select planned_amount - coalesce((select sum(t.amount) from public.transactions t where t.period_section_budget_id='34000000-0000-0000-0000-000000000001' and t.state='posted'),0) from public.period_section_budgets where id='34000000-0000-0000-0000-000000000001'), 2500::numeric, 'section remaining is derived without a spending cap');

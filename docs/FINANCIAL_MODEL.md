@@ -41,6 +41,20 @@ Both remaining values may be negative.
 
 A paid `period_fixed_commitment` records exactly one fixed actual outflow on that snapshot. It does not create a variable transaction, so the same payment cannot be counted in both fixed and variable totals. Repeating the paid operation is idempotent.
 
+## Recording a variable expense
+
+`record_expense(p_period_section_budget_id, p_amount, p_occurred_at default null, p_description default null, p_transaction_id default null)` is the sole authoritative path for creating an ordinary (non-recurring-linked) transaction. There is no direct client `INSERT` grant on `transactions` for this purpose — the prior RLS policy that allowed one only checked `is_period_open_for_writes` (true for Draft *or* Open), which does not match the product rule that expense recording requires an **Open** period specifically, and nothing validated `occurred_at` against the period's date range or against the future. `record_expense(...)` enforces, in order:
+
+1. The caller is authenticated (`created_by` is always `auth.uid()`; there is no way to attribute an expense to another user).
+2. The caller is the Household owner, or `can_contribute_to_section(...)` grants them contribution on the section (a cross-Household section id, an `owner_only`/hidden section, or a `view`-only section for a Member all fail this check with the same `not_authorized` error).
+3. The period's status is exactly `open` (`period_not_open` otherwise — Draft and Closed are both rejected).
+4. `p_occurred_at` (defaulting to "today" in the Household's IANA timezone when omitted) falls within `[budget_periods.start_date, budget_periods.end_date]` and is not after "today" in that timezone (`expense_date_out_of_period` / `expense_date_in_future`).
+5. `p_amount` is a positive value within the existing `numeric(14,2)` precision; the raw validated value is passed through to the RPC so Postgres, not JavaScript, is the arithmetic authority.
+
+Idempotency mirrors the financial-setup creation operations (D-029): an optional caller-supplied `p_transaction_id` is inserted with `on conflict (id) do nothing`; a retry with the same id returns the existing row after confirming it belongs to the same period (a mismatch — reusing an id that belongs to another period/Household — raises `transaction_id_conflict`, `23505`). No new idempotency table was introduced.
+
+Overspending a section allocation or the total spending budget is never blocked by `record_expense(...)`; `section_remaining` and `budget_remaining` are simply negative, matching the existing invariant above. Correcting a mistaken expense is void (`void_transaction(...)`) followed by a new `record_expense(...)` call — there is no transaction-editing or hard-delete path.
+
 ## Privacy and lifecycle
 
 The Owner-only planning summary RPC returns income, fixed commitments, and derived plan totals only to an Owner. Members retain section-level visibility under the existing RLS model and cannot obtain hidden totals that could reveal private income or commitments.
@@ -59,6 +73,7 @@ Planning mutations respect the existing Draft/Open/Closed lifecycle. Snapshot ro
 - `create_one_time_fixed_commitment(uuid, text, numeric, date, uuid)` atomically creates a this-month-only fixed-commitment snapshot with no template; see `docs/DATABASE.md` §6.2.
 - `create_flexible_budget_section(uuid, text, visibility_scope, section_member_access, uuid)` atomically creates a reusable flexible section and its current-period snapshot at a zero planned allocation; see `docs/DATABASE.md` §6.2.
 - `set_budget_period_status(uuid, period_status, text)` performs the Draft → Open "ابدأ الشهر" (start month) transition; the Owner may keep editing the plan afterward while the period remains Open.
+- `record_expense(uuid, numeric, date, text, uuid)` is the sole authoritative path for recording an ordinary variable expense; see "Recording a variable expense" below.
 
 ## Financial setup product decisions (post-D-027)
 
