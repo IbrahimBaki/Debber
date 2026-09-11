@@ -49,13 +49,10 @@ using (id = (select auth.uid()))
 with check (id = (select auth.uid()));
 
 -- Households
-grant select, insert, update on table public.households to authenticated;
+grant select, update on table public.households to authenticated;
 create policy "Active household members can read the household"
 on public.households for select to authenticated
 using ((select public.is_household_member(id)));
-create policy "Users can create a household owned by themselves"
-on public.households for insert to authenticated
-with check (owner_user_id = (select auth.uid()));
 create policy "Only the household owner can update the household"
 on public.households for update to authenticated
 using ((select public.is_household_owner(id)))

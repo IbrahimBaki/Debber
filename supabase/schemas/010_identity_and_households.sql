@@ -13,9 +13,10 @@ create table public.households (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(name) between 1 and 120),
   owner_user_id uuid not null references auth.users(id),
-  currency_code varchar(3) not null default 'EGP' check (currency_code ~ '^[A-Z]{3}$'),
+  currency_code varchar(3) not null default 'EGP'
+    check (currency_code in ('EGP', 'SAR', 'USD', 'EUR')),
   timezone text not null default 'Africa/Cairo',
-  period_start_day smallint not null default 1 check (period_start_day between 1 and 28),
+  period_start_day smallint not null default 1 check (period_start_day between 1 and 31),
   archived_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

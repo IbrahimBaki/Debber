@@ -812,6 +812,14 @@ export type Database = {
         Args: { p_token_hash: string }
         Returns: string
       }
+      accept_household_invitation_by_id: {
+        Args: { p_invitation_id: string }
+        Returns: string
+      }
+      accept_household_invitation_internal: {
+        Args: { p_invitation_id: string }
+        Returns: string
+      }
       can_contribute_to_section: {
         Args: { p_section_id: string }
         Returns: boolean
@@ -838,6 +846,19 @@ export type Database = {
         Returns: boolean
       }
       can_view_section: { Args: { p_section_id: string }; Returns: boolean }
+      clamped_period_start_date: {
+        Args: { p_month: number; p_period_start_day: number; p_year: number }
+        Returns: string
+      }
+      create_initial_household: {
+        Args: {
+          p_currency_code: string
+          p_name: string
+          p_period_start_day?: number
+          p_timezone?: string
+        }
+        Returns: string
+      }
       ensure_budget_period: {
         Args: { p_household_id: string }
         Returns: string
@@ -852,6 +873,17 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: never; Returns: boolean }
+      list_my_pending_household_invitations: {
+        Args: never
+        Returns: {
+          created_at: string
+          expires_at: string
+          household_id: string
+          household_name: string
+          invitation_id: string
+          inviter_display_name: string
+        }[]
+      }
       mark_monthly_item_paid: {
         Args: {
           p_actual_amount?: number

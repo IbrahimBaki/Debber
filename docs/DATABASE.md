@@ -84,7 +84,15 @@ Historical names and planned values are copied to monthly tables. Current privac
 - Only one monthly snapshot per recurring template per period.
 - Only one posted transaction per monthly recurring item in MVP.
 - Cross-household/period mismatches are rejected by validation triggers.
-- `period_start_day` is constrained to 1–28 to avoid invalid cycle dates.
+- `households.currency_code` is constrained to the MVP catalogue: `EGP`, `SAR`, `USD`, and `EUR`.
+- `period_start_day` is constrained to 1–31. When the configured day is absent from a month, period calculation clamps to that month’s final valid day; a period ends one day before the next clamped start.
+- Existing `budget_periods` retain their stored boundaries when a Household later changes `period_start_day`.
+
+## 6.1 Onboarding domain operations
+
+- `list_my_pending_household_invitations()` securely derives the authenticated user from `auth.uid()` and returns only safe onboarding display fields for that user’s non-expired pending invitations.
+- `accept_household_invitation_by_id(uuid)` atomically validates the invitation recipient and creates an MVP `member` membership. The existing token-hash acceptance RPC remains available for invitation-link entry points.
+- `create_initial_household(...)` is the only authenticated-client Household creation operation. It is serialized and retry-safe, returns an existing active Household on retry, and relies on the existing insert trigger to create the `owner` membership transactionally.
 
 ## 7. Money calculations
 

@@ -1,5 +1,32 @@
 -- Dabber declarative schema: domain RPCs that require atomic multi-table writes.
 
+create or replace function public.clamped_period_start_date(
+  p_year integer,
+  p_month integer,
+  p_period_start_day integer
+)
+returns date
+language sql
+immutable
+strict
+set search_path = ''
+as $$
+  select pg_catalog.make_date(p_year, p_month, 1)
+    + (
+      least(
+        p_period_start_day::integer,
+        pg_catalog.date_part(
+          'day',
+          pg_catalog.date_trunc('month', pg_catalog.make_date(p_year, p_month, 1))
+          + interval '1 month - 1 day'
+        )::integer
+      ) - 1
+    );
+$$;
+
+revoke all on function public.clamped_period_start_date(integer, integer, integer) from public;
+revoke all on function public.clamped_period_start_date(integer, integer, integer) from anon, authenticated, service_role;
+
 create or replace function public.ensure_budget_period(p_household_id uuid)
 returns uuid
 language plpgsql
@@ -11,7 +38,10 @@ declare
   v_timezone text;
   v_start_day integer;
   v_local_date date;
+  v_target_month date;
+  v_next_target_month date;
   v_start_date date;
+  v_next_start_date date;
   v_end_date date;
   v_period_id uuid;
 begin
@@ -30,18 +60,28 @@ begin
 
   v_local_date := (now() at time zone v_timezone)::date;
 
-  if extract(day from v_local_date)::integer >= v_start_day then
-    v_start_date := make_date(
-      extract(year from v_local_date)::integer,
-      extract(month from v_local_date)::integer,
-      v_start_day
-    );
+  if v_local_date >= public.clamped_period_start_date(
+    extract(year from v_local_date)::integer,
+    extract(month from v_local_date)::integer,
+    v_start_day
+  ) then
+    v_target_month := date_trunc('month', v_local_date)::date;
   else
-    v_start_date := (date_trunc('month', v_local_date)::date - interval '1 month')::date
-                    + (v_start_day - 1);
+    v_target_month := (date_trunc('month', v_local_date)::date - interval '1 month')::date;
   end if;
 
-  v_end_date := (v_start_date + interval '1 month' - interval '1 day')::date;
+  v_next_target_month := (v_target_month + interval '1 month')::date;
+  v_start_date := public.clamped_period_start_date(
+    extract(year from v_target_month)::integer,
+    extract(month from v_target_month)::integer,
+    v_start_day
+  );
+  v_next_start_date := public.clamped_period_start_date(
+    extract(year from v_next_target_month)::integer,
+    extract(month from v_next_target_month)::integer,
+    v_start_day
+  );
+  v_end_date := v_next_start_date - 1;
 
   insert into public.budget_periods (
     household_id, period_key, start_date, end_date, status, created_by
@@ -99,8 +139,8 @@ begin
         make_date(extract(year from v_start_date)::integer, extract(month from v_start_date)::integer, rt.due_day)
       else
         make_date(
-          extract(year from (v_start_date + interval '1 month'))::integer,
-          extract(month from (v_start_date + interval '1 month'))::integer,
+          extract(year from v_next_start_date)::integer,
+          extract(month from v_next_start_date)::integer,
           rt.due_day
         )
     end,
@@ -121,6 +161,122 @@ $$;
 
 revoke all on function public.ensure_budget_period(uuid) from public;
 grant execute on function public.ensure_budget_period(uuid) to authenticated;
+
+create or replace function public.list_my_pending_household_invitations()
+returns table (
+  invitation_id uuid,
+  household_id uuid,
+  household_name text,
+  inviter_display_name text,
+  created_at timestamptz,
+  expires_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_user_email text;
+begin
+  if v_uid is null then
+    raise exception 'not_authenticated' using errcode = '42501';
+  end if;
+
+  select pg_catalog.lower(u.email) into v_user_email
+  from auth.users u
+  where u.id = v_uid;
+
+  if v_user_email is null then
+    raise exception 'authenticated_user_email_not_found' using errcode = 'P0002';
+  end if;
+
+  return query
+  select hi.id, h.id, h.name, p.display_name, hi.created_at, hi.expires_at
+  from public.household_invitations hi
+  join public.households h on h.id = hi.household_id
+  left join public.profiles p on p.id = hi.invited_by
+  where pg_catalog.lower(hi.email) = v_user_email
+    and hi.status = 'pending'
+    and hi.expires_at > now()
+    and h.archived_at is null
+  order by hi.created_at asc, hi.id asc;
+end;
+$$;
+
+revoke all on function public.list_my_pending_household_invitations() from public;
+revoke all on function public.list_my_pending_household_invitations() from anon, service_role;
+grant execute on function public.list_my_pending_household_invitations() to authenticated;
+
+create or replace function public.create_initial_household(
+  p_name text,
+  p_currency_code varchar(3),
+  p_period_start_day integer default 1,
+  p_timezone text default 'Africa/Cairo'
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_user_email text;
+  v_existing_household_id uuid;
+  v_household_id uuid;
+begin
+  if v_uid is null then
+    raise exception 'not_authenticated' using errcode = '42501';
+  end if;
+
+  if p_currency_code not in ('EGP', 'SAR', 'USD', 'EUR') then
+    raise exception 'unsupported_currency_code' using errcode = '23514';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_uid::text, 0));
+
+  select hm.household_id into v_existing_household_id
+  from public.household_members hm
+  where hm.user_id = v_uid
+    and hm.status = 'active'
+  order by hm.joined_at asc, hm.id asc
+  limit 1;
+
+  if v_existing_household_id is not null then
+    return v_existing_household_id;
+  end if;
+
+  select pg_catalog.lower(u.email) into v_user_email
+  from auth.users u
+  where u.id = v_uid;
+
+  if exists (
+    select 1
+    from public.household_invitations hi
+    join public.households h on h.id = hi.household_id
+    where pg_catalog.lower(hi.email) = v_user_email
+      and hi.status = 'pending'
+      and hi.expires_at > now()
+      and h.archived_at is null
+  ) then
+    raise exception 'pending_invitation_requires_resolution' using errcode = 'P0001';
+  end if;
+
+  insert into public.households (
+    name, owner_user_id, currency_code, period_start_day, timezone
+  ) values (
+    p_name, v_uid, p_currency_code, p_period_start_day, p_timezone
+  )
+  returning id into v_household_id;
+
+  return v_household_id;
+end;
+$$;
+
+revoke all on function public.create_initial_household(text, varchar, integer, text) from public;
+revoke all on function public.create_initial_household(text, varchar, integer, text) from anon, service_role;
+grant execute on function public.create_initial_household(text, varchar, integer, text) to authenticated;
 
 create or replace function public.mark_monthly_item_paid(
   p_monthly_item_id uuid,
@@ -292,7 +448,7 @@ revoke all on function public.void_transaction(uuid, text) from public;
 grant execute on function public.void_transaction(uuid, text) to authenticated;
 
 
-create or replace function public.accept_household_invitation(p_token_hash text)
+create or replace function public.accept_household_invitation_internal(p_invitation_id uuid)
 returns uuid
 language plpgsql
 security definer
@@ -307,17 +463,46 @@ begin
     raise exception 'not_authenticated' using errcode = '42501';
   end if;
 
-  select lower(u.email) into v_user_email
+  select pg_catalog.lower(u.email) into v_user_email
   from auth.users u where u.id = v_uid;
 
   select * into v_invitation
   from public.household_invitations hi
-  where hi.token_hash = p_token_hash
-    and hi.status = 'pending'
+  where hi.id = p_invitation_id
   for update;
 
   if v_invitation.id is null then
     raise exception 'invitation_not_found' using errcode = 'P0002';
+  end if;
+
+  if pg_catalog.lower(v_invitation.email) is distinct from v_user_email then
+    raise exception 'invitation_email_mismatch' using errcode = '42501';
+  end if;
+
+  if not exists (
+    select 1
+    from public.households h
+    where h.id = v_invitation.household_id
+      and h.archived_at is null
+  ) then
+    raise exception 'household_not_found' using errcode = 'P0002';
+  end if;
+
+  if v_invitation.status = 'accepted' and v_invitation.accepted_by = v_uid then
+    if exists (
+      select 1
+      from public.household_members hm
+      where hm.household_id = v_invitation.household_id
+        and hm.user_id = v_uid
+        and hm.status = 'active'
+    ) then
+      return v_invitation.household_id;
+    end if;
+    raise exception 'invitation_acceptance_incomplete' using errcode = 'P0001';
+  end if;
+
+  if v_invitation.status <> 'pending' then
+    raise exception 'invitation_not_pending' using errcode = 'P0001';
   end if;
 
   if v_invitation.expires_at <= now() then
@@ -325,10 +510,6 @@ begin
     set status = 'expired', updated_at = now()
     where id = v_invitation.id;
     raise exception 'invitation_expired' using errcode = 'P0001';
-  end if;
-
-  if lower(v_invitation.email) is distinct from v_user_email then
-    raise exception 'invitation_email_mismatch' using errcode = '42501';
   end if;
 
   insert into public.household_members (household_id, user_id, role, status)
@@ -350,8 +531,48 @@ begin
 end;
 $$;
 
+revoke all on function public.accept_household_invitation_internal(uuid) from public;
+revoke all on function public.accept_household_invitation_internal(uuid) from anon, authenticated, service_role;
+
+create or replace function public.accept_household_invitation(p_token_hash text)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_invitation_id uuid;
+begin
+  select hi.id into v_invitation_id
+  from public.household_invitations hi
+  where hi.token_hash = p_token_hash;
+
+  if v_invitation_id is null then
+    raise exception 'invitation_not_found' using errcode = 'P0002';
+  end if;
+
+  return public.accept_household_invitation_internal(v_invitation_id);
+end;
+$$;
+
 revoke all on function public.accept_household_invitation(text) from public;
+revoke all on function public.accept_household_invitation(text) from anon, service_role;
 grant execute on function public.accept_household_invitation(text) to authenticated;
+
+create or replace function public.accept_household_invitation_by_id(p_invitation_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  return public.accept_household_invitation_internal(p_invitation_id);
+end;
+$$;
+
+revoke all on function public.accept_household_invitation_by_id(uuid) from public;
+revoke all on function public.accept_household_invitation_by_id(uuid) from anon, service_role;
+grant execute on function public.accept_household_invitation_by_id(uuid) to authenticated;
 
 create or replace function public.remove_household_member(p_household_id uuid, p_user_id uuid)
 returns void
