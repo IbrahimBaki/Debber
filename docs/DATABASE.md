@@ -28,6 +28,8 @@
 | `budget_periods` | One financial cycle per household and start date. |
 | `income_sources` | Recurring/default income source configuration. |
 | `period_income_items` | Monthly income snapshots and one-off income. |
+| `fixed_commitment_templates` | Reusable Owner-only fixed-commitment configuration, independent of spending sections. |
+| `period_fixed_commitments` | Monthly fixed-commitment snapshots and their single fixed actual outflow. |
 | `budget_sections` | Persistent section configuration and privacy boundary. |
 | `period_section_budgets` | Monthly section snapshot with planned amount and historical name/kind. |
 | `recurring_templates` | Persistent recurring obligation/item configuration. |
@@ -62,6 +64,7 @@ Persistent configuration:
 income_sources
 budget_sections
 recurring_templates
+fixed_commitment_templates
 ```
 
 Monthly history:
@@ -71,6 +74,7 @@ budget_periods
 period_income_items
 period_section_budgets
 monthly_items
+period_fixed_commitments
 transactions
 ```
 
@@ -96,24 +100,40 @@ Historical names and planned values are copied to monthly tables. Current privac
 
 ## 7. Money calculations
 
-Owner full model:
+Owner planning model:
 
 ```text
-Total income
-- Fixed commitments
-- Flexible allocations
-= Unallocated / reserve
+total planned income
+- total planned fixed commitments
+= available after commitments
+
+available after commitments
+- owner-defined spending budget
+= plan balance
+
+positive plan balance = unallocated income
+negative plan balance = planned deficit
 ```
 
-Shared section model:
+Variable spending model:
 
 ```text
-Section planned amount
+spending budget
+- flexible section allocations
+= unallocated spending budget
+
+section allocation
 - Sum(posted transactions in section)
 = Section remaining
 ```
 
-Fixed commitment planned total can be computed from pending/paid monthly item planned amounts within fixed sections. Actual spending comes from posted transactions so a paid recurring item is not counted twice.
+Flexible allocations must not exceed the spending budget, but may be lower. Actual variable spending may exceed either a section allocation or the spending budget; negative remaining values are retained rather than clamped.
+
+Fixed commitment planned total is the sum of `pending` and `paid` `period_fixed_commitments`; `skipped` excludes the commitment for that month, matching the existing monthly-item convention. `mark_period_fixed_commitment_paid(...)` records the one fixed actual outflow directly on its monthly snapshot. It does not create a variable-section transaction, preventing double counting.
+
+`budget_sections.default_planned_amount` remains reusable configuration only. `ensure_budget_period(...)` creates new period section snapshots at zero and sets `budget_periods.spending_budget` to zero; an Owner must explicitly establish that month’s variable plan.
+
+`period_section_budgets.section_kind_snapshot = fixed` and `monthly_items` remain in the schema for existing historical/legacy recurring section data. New fixed-commitment planning and payment flows use `fixed_commitment_templates` and `period_fixed_commitments`; they do not require a budget section and do not contribute to variable spending.
 
 ## 8. Future domains not created yet
 

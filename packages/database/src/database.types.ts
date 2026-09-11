@@ -127,6 +127,7 @@ export type Database = {
           id: string
           opened_at: string | null
           period_key: string
+          spending_budget: number
           start_date: string
           status: Database["public"]["Enums"]["period_status"]
           updated_at: string
@@ -140,6 +141,7 @@ export type Database = {
           id?: string
           opened_at?: string | null
           period_key: string
+          spending_budget?: number
           start_date: string
           status?: Database["public"]["Enums"]["period_status"]
           updated_at?: string
@@ -153,6 +155,7 @@ export type Database = {
           id?: string
           opened_at?: string | null
           period_key?: string
+          spending_budget?: number
           start_date?: string
           status?: Database["public"]["Enums"]["period_status"]
           updated_at?: string
@@ -216,6 +219,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "budget_sections_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_commitment_templates: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string
+          default_amount: number
+          due_day: number | null
+          household_id: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by: string
+          default_amount?: number
+          due_day?: number | null
+          household_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string
+          default_amount?: number
+          due_day?: number | null
+          household_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_commitment_templates_household_id_fkey"
             columns: ["household_id"]
             isOneToOne: false
             referencedRelation: "households"
@@ -466,6 +516,63 @@ export type Database = {
             columns: ["recurring_template_id"]
             isOneToOne: false
             referencedRelation: "recurring_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      period_fixed_commitments: {
+        Row: {
+          actual_amount: number | null
+          created_at: string
+          created_by: string
+          due_date: string | null
+          fixed_commitment_template_id: string | null
+          id: string
+          name_snapshot: string
+          period_id: string
+          planned_amount: number
+          status: Database["public"]["Enums"]["monthly_item_status"]
+          updated_at: string
+        }
+        Insert: {
+          actual_amount?: number | null
+          created_at?: string
+          created_by: string
+          due_date?: string | null
+          fixed_commitment_template_id?: string | null
+          id?: string
+          name_snapshot: string
+          period_id: string
+          planned_amount?: number
+          status?: Database["public"]["Enums"]["monthly_item_status"]
+          updated_at?: string
+        }
+        Update: {
+          actual_amount?: number | null
+          created_at?: string
+          created_by?: string
+          due_date?: string | null
+          fixed_commitment_template_id?: string | null
+          id?: string
+          name_snapshot?: string
+          period_id?: string
+          planned_amount?: number
+          status?: Database["public"]["Enums"]["monthly_item_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_fixed_commitments_fixed_commitment_template_id_fkey"
+            columns: ["fixed_commitment_template_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_commitment_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "period_fixed_commitments_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "budget_periods"
             referencedColumns: ["id"]
           },
         ]
@@ -863,6 +970,23 @@ export type Database = {
         Args: { p_household_id: string }
         Returns: string
       }
+      get_owner_period_planning_summary: {
+        Args: { p_period_id: string }
+        Returns: {
+          actual_fixed_commitment_outflow: number
+          actual_variable_spending_total: number
+          available_after_commitments: number
+          budget_remaining: number
+          plan_balance: number
+          planned_deficit: number
+          spending_budget: number
+          total_planned_commitments: number
+          total_planned_income: number
+          total_section_allocations: number
+          unallocated_income: number
+          unallocated_spending_budget: number
+        }[]
+      }
       is_household_member: {
         Args: { p_household_id: string }
         Returns: boolean
@@ -893,6 +1017,10 @@ export type Database = {
         }
         Returns: string
       }
+      mark_period_fixed_commitment_paid: {
+        Args: { p_actual_amount?: number; p_period_fixed_commitment_id: string }
+        Returns: undefined
+      }
       period_household_id: { Args: { p_period_id: string }; Returns: string }
       remove_household_member: {
         Args: { p_household_id: string; p_user_id: string }
@@ -908,6 +1036,26 @@ export type Database = {
       }
       set_monthly_item_skipped: {
         Args: { p_monthly_item_id: string; p_reason?: string; p_skip?: boolean }
+        Returns: undefined
+      }
+      set_period_fixed_commitment_planned_amount: {
+        Args: { p_period_fixed_commitment_id: string; p_planned_amount: number }
+        Returns: undefined
+      }
+      set_period_fixed_commitment_skipped: {
+        Args: {
+          p_period_fixed_commitment_id: string
+          p_reason?: string
+          p_skip: boolean
+        }
+        Returns: undefined
+      }
+      set_period_section_allocation: {
+        Args: { p_period_section_budget_id: string; p_planned_amount: number }
+        Returns: undefined
+      }
+      set_period_spending_budget: {
+        Args: { p_period_id: string; p_spending_budget: number }
         Returns: undefined
       }
       shares_household_with: {

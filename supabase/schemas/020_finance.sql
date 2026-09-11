@@ -7,6 +7,7 @@ create table public.budget_periods (
   start_date date not null,
   end_date date not null,
   status public.period_status not null default 'draft',
+  spending_budget numeric(14,2) not null default 0 check (spending_budget >= 0),
   opened_at timestamptz,
   closed_at timestamptz,
   created_by uuid not null references auth.users(id),
@@ -89,6 +90,38 @@ create table public.recurring_templates (
   updated_at timestamptz not null default now()
 );
 
+-- Fixed commitments are deliberately separate from variable spending sections.
+create table public.fixed_commitment_templates (
+  id uuid primary key default gen_random_uuid(),
+  household_id uuid not null references public.households(id) on delete cascade,
+  name text not null check (char_length(name) between 1 and 160),
+  default_amount numeric(14,2) not null default 0 check (default_amount >= 0),
+  due_day smallint check (due_day is null or due_day between 1 and 28),
+  is_active boolean not null default true,
+  created_by uuid not null references auth.users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.period_fixed_commitments (
+  id uuid primary key default gen_random_uuid(),
+  period_id uuid not null references public.budget_periods(id) on delete cascade,
+  fixed_commitment_template_id uuid references public.fixed_commitment_templates(id) on delete set null,
+  name_snapshot text not null check (char_length(name_snapshot) between 1 and 160),
+  planned_amount numeric(14,2) not null default 0 check (planned_amount >= 0),
+  actual_amount numeric(14,2) check (actual_amount is null or actual_amount >= 0),
+  due_date date,
+  status public.monthly_item_status not null default 'pending',
+  created_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index period_fixed_commitments_template_period_unique
+on public.period_fixed_commitments (period_id, fixed_commitment_template_id)
+where fixed_commitment_template_id is not null;
+
 create table public.monthly_items (
   id uuid primary key default gen_random_uuid(),
   period_id uuid not null references public.budget_periods(id) on delete cascade,
@@ -169,6 +202,10 @@ for each row execute function public.set_updated_at();
 create trigger period_section_budgets_set_updated_at before update on public.period_section_budgets
 for each row execute function public.set_updated_at();
 create trigger recurring_templates_set_updated_at before update on public.recurring_templates
+for each row execute function public.set_updated_at();
+create trigger fixed_commitment_templates_set_updated_at before update on public.fixed_commitment_templates
+for each row execute function public.set_updated_at();
+create trigger period_fixed_commitments_set_updated_at before update on public.period_fixed_commitments
 for each row execute function public.set_updated_at();
 create trigger monthly_items_set_updated_at before update on public.monthly_items
 for each row execute function public.set_updated_at();

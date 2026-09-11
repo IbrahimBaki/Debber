@@ -10,6 +10,8 @@ alter table public.resource_permissions enable row level security;
 alter table public.budget_periods enable row level security;
 alter table public.income_sources enable row level security;
 alter table public.period_income_items enable row level security;
+alter table public.fixed_commitment_templates enable row level security;
+alter table public.period_fixed_commitments enable row level security;
 alter table public.budget_sections enable row level security;
 alter table public.period_section_budgets enable row level security;
 alter table public.recurring_templates enable row level security;
@@ -27,6 +29,8 @@ revoke all on table public.resource_permissions from anon, authenticated;
 revoke all on table public.budget_periods from anon, authenticated;
 revoke all on table public.income_sources from anon, authenticated;
 revoke all on table public.period_income_items from anon, authenticated;
+revoke all on table public.fixed_commitment_templates from anon, authenticated;
+revoke all on table public.period_fixed_commitments from anon, authenticated;
 revoke all on table public.budget_sections from anon, authenticated;
 revoke all on table public.period_section_budgets from anon, authenticated;
 revoke all on table public.recurring_templates from anon, authenticated;
@@ -161,6 +165,24 @@ using (
   and (select public.is_period_open_for_writes(period_id))
 );
 
+-- Fixed commitments are Owner-only in MVP; no summary RPC exposes them to members.
+grant select, insert, update on table public.fixed_commitment_templates to authenticated;
+create policy "Owners can read fixed commitment templates"
+on public.fixed_commitment_templates for select to authenticated
+using ((select public.is_household_owner(household_id)));
+create policy "Owners can create fixed commitment templates"
+on public.fixed_commitment_templates for insert to authenticated
+with check ((select public.is_household_owner(household_id)) and created_by = (select auth.uid()));
+create policy "Owners can update fixed commitment templates"
+on public.fixed_commitment_templates for update to authenticated
+using ((select public.is_household_owner(household_id)))
+with check ((select public.is_household_owner(household_id)));
+
+grant select on table public.period_fixed_commitments to authenticated;
+create policy "Owners can read period fixed commitments"
+on public.period_fixed_commitments for select to authenticated
+using ((select public.is_household_owner(public.period_household_id(period_id))));
+
 -- Budget sections
 grant select, insert, update on table public.budget_sections to authenticated;
 create policy "Users can read visible budget sections"
@@ -175,26 +197,10 @@ using ((select public.is_household_owner(household_id)))
 with check ((select public.is_household_owner(household_id)));
 
 -- Monthly section snapshots
-grant select, insert, update on table public.period_section_budgets to authenticated;
+grant select on table public.period_section_budgets to authenticated;
 create policy "Users can read visible monthly section budgets"
 on public.period_section_budgets for select to authenticated
 using ((select public.can_view_section(section_id)));
-create policy "Owners can create monthly section budgets"
-on public.period_section_budgets for insert to authenticated
-with check (
-  (select public.is_household_owner(public.period_household_id(period_id)))
-  and (select public.is_period_open_for_writes(period_id))
-);
-create policy "Owners can update monthly section budgets"
-on public.period_section_budgets for update to authenticated
-using (
-  (select public.is_household_owner(public.period_household_id(period_id)))
-  and (select public.is_period_open_for_writes(period_id))
-)
-with check (
-  (select public.is_household_owner(public.period_household_id(period_id)))
-  and (select public.is_period_open_for_writes(period_id))
-);
 
 -- Recurring templates inherit the containing section privacy boundary.
 grant select, insert, update on table public.recurring_templates to authenticated;

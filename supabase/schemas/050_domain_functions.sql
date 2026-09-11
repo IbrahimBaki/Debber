@@ -97,12 +97,32 @@ begin
     period_id, section_id, section_name_snapshot, section_kind_snapshot, planned_amount
   )
   select
-    v_period_id, s.id, s.name, s.kind, s.default_planned_amount
+    v_period_id, s.id, s.name, s.kind, 0
   from public.budget_sections s
   where s.household_id = p_household_id
     and s.is_active = true
     and s.archived_at is null
   on conflict (period_id, section_id) do nothing;
+
+  insert into public.period_fixed_commitments (
+    period_id, fixed_commitment_template_id, name_snapshot, planned_amount,
+    due_date, status, created_by
+  )
+  select
+    v_period_id, fct.id, fct.name, fct.default_amount,
+    case
+      when fct.due_day is null then null
+      when fct.due_day >= v_start_day then
+        make_date(extract(year from v_start_date)::integer, extract(month from v_start_date)::integer, fct.due_day)
+      else
+        make_date(extract(year from v_next_start_date)::integer, extract(month from v_next_start_date)::integer, fct.due_day)
+    end,
+    'pending', v_uid
+  from public.fixed_commitment_templates fct
+  where fct.household_id = p_household_id
+    and fct.is_active = true
+    and fct.archived_at is null
+  on conflict (period_id, fixed_commitment_template_id) where fixed_commitment_template_id is not null do nothing;
 
   insert into public.period_income_items (
     period_id, income_source_id, name_snapshot, planned_amount,
@@ -161,6 +181,169 @@ $$;
 
 revoke all on function public.ensure_budget_period(uuid) from public;
 grant execute on function public.ensure_budget_period(uuid) to authenticated;
+
+create or replace function public.set_period_spending_budget(p_period_id uuid, p_spending_budget numeric)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_household_id uuid;
+  v_allocations numeric(14,2);
+begin
+  if v_uid is null then raise exception 'not_authenticated' using errcode = '42501'; end if;
+  if p_spending_budget is null or p_spending_budget < 0 then raise exception 'invalid_amount' using errcode = '22003'; end if;
+  select household_id into v_household_id from public.budget_periods where id = p_period_id for update;
+  if v_household_id is null then raise exception 'period_not_found' using errcode = 'P0002'; end if;
+  if not public.is_household_owner(v_household_id) or not public.is_period_open_for_writes(p_period_id) then raise exception 'not_authorized' using errcode = '42501'; end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_period_id::text, 0));
+  perform 1
+  from public.period_section_budgets
+  where period_id = p_period_id and section_kind_snapshot = 'flexible'
+  for update;
+  select coalesce(sum(planned_amount), 0) into v_allocations
+  from public.period_section_budgets
+  where period_id = p_period_id and section_kind_snapshot = 'flexible';
+  if v_allocations > p_spending_budget then raise exception 'section_allocations_exceed_spending_budget' using errcode = '23514'; end if;
+  update public.budget_periods set spending_budget = p_spending_budget where id = p_period_id;
+end; $$;
+revoke all on function public.set_period_spending_budget(uuid, numeric) from public;
+revoke all on function public.set_period_spending_budget(uuid, numeric) from anon, service_role;
+grant execute on function public.set_period_spending_budget(uuid, numeric) to authenticated;
+
+create or replace function public.set_period_section_allocation(p_period_section_budget_id uuid, p_planned_amount numeric)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_period_id uuid;
+  v_household_id uuid;
+  v_kind public.section_kind;
+  v_budget numeric(14,2);
+  v_other numeric(14,2);
+begin
+  if v_uid is null then raise exception 'not_authenticated' using errcode = '42501'; end if;
+  if p_planned_amount is null or p_planned_amount < 0 then raise exception 'invalid_amount' using errcode = '22003'; end if;
+  select psb.period_id, bp.household_id, psb.section_kind_snapshot, bp.spending_budget into v_period_id,v_household_id,v_kind,v_budget from public.period_section_budgets psb join public.budget_periods bp on bp.id=psb.period_id where psb.id=p_period_section_budget_id for update of psb, bp;
+  if v_period_id is null then raise exception 'period_section_budget_not_found' using errcode='P0002'; end if;
+  if v_kind <> 'flexible' then raise exception 'fixed_commitments_are_not_section_allocations' using errcode='23514'; end if;
+  if not public.is_household_owner(v_household_id) or not public.is_period_open_for_writes(v_period_id) then raise exception 'not_authorized' using errcode='42501'; end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_period_id::text, 0));
+  perform 1
+  from public.period_section_budgets
+  where period_id=v_period_id and section_kind_snapshot='flexible'
+  for update;
+  select coalesce(sum(planned_amount),0) into v_other
+  from public.period_section_budgets
+  where period_id=v_period_id and section_kind_snapshot='flexible' and id<>p_period_section_budget_id;
+  if v_other + p_planned_amount > v_budget then raise exception 'section_allocations_exceed_spending_budget' using errcode='23514'; end if;
+  update public.period_section_budgets set planned_amount=p_planned_amount where id=p_period_section_budget_id;
+end; $$;
+revoke all on function public.set_period_section_allocation(uuid, numeric) from public;
+revoke all on function public.set_period_section_allocation(uuid, numeric) from anon, service_role;
+grant execute on function public.set_period_section_allocation(uuid, numeric) to authenticated;
+
+create or replace function public.get_owner_period_planning_summary(p_period_id uuid)
+returns table(total_planned_income numeric, total_planned_commitments numeric, available_after_commitments numeric, spending_budget numeric, plan_balance numeric, unallocated_income numeric, planned_deficit numeric, total_section_allocations numeric, unallocated_spending_budget numeric, actual_variable_spending_total numeric, actual_fixed_commitment_outflow numeric, budget_remaining numeric)
+language plpgsql stable security definer set search_path = '' as $$
+declare v_household_id uuid;
+begin
+  select household_id into v_household_id from public.budget_periods where id=p_period_id;
+  if (select auth.uid()) is null or not public.is_household_owner(v_household_id) then raise exception 'not_authorized' using errcode='42501'; end if;
+  return query
+  with income as (select coalesce(sum(planned_amount),0)::numeric v from public.period_income_items where period_id=p_period_id), commitments as (select coalesce(sum(planned_amount),0)::numeric v from public.period_fixed_commitments where period_id=p_period_id and status in ('pending','paid')), allocations as (select coalesce(sum(planned_amount),0)::numeric v from public.period_section_budgets where period_id=p_period_id and section_kind_snapshot='flexible'), variable_spend as (select coalesce(sum(t.amount),0)::numeric v from public.transactions t join public.period_section_budgets psb on psb.id=t.period_section_budget_id where t.period_id=p_period_id and t.state='posted' and psb.section_kind_snapshot='flexible'), fixed_actual as (select coalesce(sum(actual_amount),0)::numeric v from public.period_fixed_commitments where period_id=p_period_id and status='paid')
+  select income.v, commitments.v, income.v-commitments.v, bp.spending_budget, income.v-commitments.v-bp.spending_budget, greatest(income.v-commitments.v-bp.spending_budget,0), greatest(-(income.v-commitments.v-bp.spending_budget),0), allocations.v, bp.spending_budget-allocations.v, variable_spend.v, fixed_actual.v, bp.spending_budget-variable_spend.v from public.budget_periods bp,income,commitments,allocations,variable_spend,fixed_actual where bp.id=p_period_id;
+end; $$;
+revoke all on function public.get_owner_period_planning_summary(uuid) from public;
+revoke all on function public.get_owner_period_planning_summary(uuid) from anon, service_role;
+grant execute on function public.get_owner_period_planning_summary(uuid) to authenticated;
+
+create or replace function public.mark_period_fixed_commitment_paid(p_period_fixed_commitment_id uuid, p_actual_amount numeric default null)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_period_id uuid;
+  v_household_id uuid;
+  v_planned numeric;
+  v_status public.monthly_item_status;
+  v_amount numeric(14,2);
+begin
+  if v_uid is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  select pfc.period_id, bp.household_id, pfc.planned_amount, pfc.status
+  into v_period_id, v_household_id, v_planned, v_status
+  from public.period_fixed_commitments pfc
+  join public.budget_periods bp on bp.id=pfc.period_id
+  where pfc.id=p_period_fixed_commitment_id
+  for update of pfc;
+  if v_period_id is null then raise exception 'fixed_commitment_not_found' using errcode='P0002'; end if;
+  if not public.is_household_owner(v_household_id) or not public.is_period_open_for_writes(v_period_id) then raise exception 'not_authorized' using errcode='42501'; end if;
+  if v_status = 'paid' then return; end if;
+  v_amount := coalesce(p_actual_amount, v_planned);
+  if v_amount is null or v_amount <= 0 then raise exception 'invalid_amount' using errcode='22003'; end if;
+  update public.period_fixed_commitments
+  set status='paid', actual_amount=v_amount
+  where id=p_period_fixed_commitment_id;
+  insert into public.audit_events(household_id,actor_user_id,actor_type,event_type,entity_type,entity_id,after_data)
+  values(v_household_id,v_uid,'user','fixed_commitment.paid','period_fixed_commitment',p_period_fixed_commitment_id,jsonb_build_object('actual_amount', v_amount));
+end; $$;
+revoke all on function public.mark_period_fixed_commitment_paid(uuid, numeric) from public;
+revoke all on function public.mark_period_fixed_commitment_paid(uuid, numeric) from anon, service_role;
+grant execute on function public.mark_period_fixed_commitment_paid(uuid, numeric) to authenticated;
+
+create or replace function public.set_period_fixed_commitment_planned_amount(
+  p_period_fixed_commitment_id uuid,
+  p_planned_amount numeric
+)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_period_id uuid;
+  v_household_id uuid;
+begin
+  if v_uid is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  if p_planned_amount is null or p_planned_amount < 0 then raise exception 'invalid_amount' using errcode='22003'; end if;
+  select pfc.period_id, bp.household_id into v_period_id, v_household_id
+  from public.period_fixed_commitments pfc
+  join public.budget_periods bp on bp.id = pfc.period_id
+  where pfc.id = p_period_fixed_commitment_id
+  for update of pfc;
+  if v_period_id is null then raise exception 'fixed_commitment_not_found' using errcode='P0002'; end if;
+  if not public.is_household_owner(v_household_id) or not public.is_period_open_for_writes(v_period_id) then raise exception 'not_authorized' using errcode='42501'; end if;
+  update public.period_fixed_commitments set planned_amount = p_planned_amount where id = p_period_fixed_commitment_id;
+end; $$;
+revoke all on function public.set_period_fixed_commitment_planned_amount(uuid, numeric) from public;
+revoke all on function public.set_period_fixed_commitment_planned_amount(uuid, numeric) from anon, service_role;
+grant execute on function public.set_period_fixed_commitment_planned_amount(uuid, numeric) to authenticated;
+
+create or replace function public.set_period_fixed_commitment_skipped(
+  p_period_fixed_commitment_id uuid,
+  p_skip boolean,
+  p_reason text default null
+)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_period_id uuid;
+  v_household_id uuid;
+  v_status public.monthly_item_status;
+begin
+  if v_uid is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  select pfc.period_id, bp.household_id, pfc.status
+  into v_period_id, v_household_id, v_status
+  from public.period_fixed_commitments pfc
+  join public.budget_periods bp on bp.id = pfc.period_id
+  where pfc.id = p_period_fixed_commitment_id
+  for update of pfc;
+  if v_period_id is null then raise exception 'fixed_commitment_not_found' using errcode='P0002'; end if;
+  if not public.is_household_owner(v_household_id) or not public.is_period_open_for_writes(v_period_id) then raise exception 'not_authorized' using errcode='42501'; end if;
+  if p_skip and v_status = 'paid' then raise exception 'cannot_skip_paid_commitment' using errcode='23514'; end if;
+  update public.period_fixed_commitments
+  set status = case when p_skip then 'skipped'::public.monthly_item_status else 'pending'::public.monthly_item_status end,
+      actual_amount = case when p_skip then null else actual_amount end
+  where id = p_period_fixed_commitment_id;
+  insert into public.audit_events(household_id,actor_user_id,actor_type,event_type,entity_type,entity_id,metadata)
+  values(v_household_id,v_uid,'user',case when p_skip then 'fixed_commitment.skipped' else 'fixed_commitment.unskipped' end,'period_fixed_commitment',p_period_fixed_commitment_id,jsonb_build_object('reason', p_reason));
+end; $$;
+revoke all on function public.set_period_fixed_commitment_skipped(uuid, boolean, text) from public;
+revoke all on function public.set_period_fixed_commitment_skipped(uuid, boolean, text) from anon, service_role;
+grant execute on function public.set_period_fixed_commitment_skipped(uuid, boolean, text) to authenticated;
 
 create or replace function public.list_my_pending_household_invitations()
 returns table (
