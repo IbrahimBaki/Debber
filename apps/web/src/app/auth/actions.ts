@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -27,14 +28,46 @@ function safeNext(value: FormDataEntryValue | null, fallback = "/app") {
     : fallback;
 }
 
-function appUrl(path: string) {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL;
+// NEXT_PUBLIC_SITE_URL is an optional override; when unset (as in production today) the origin
+// is derived from the incoming request's own Host header, which Vercel always sets correctly.
+// Previously this threw synchronously whenever the env var was absent -- caught by the outer
+// try/catch below and surfaced as the generic fallback error with auth.signUp() never reached
+// (confirmed via temporary stage logging: production never got past this line).
+async function appUrl(path: string) {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL;
+  const origin = configured || (await requestOrigin());
 
   if (!origin) {
-    throw new Error("Site URL is not configured.");
+    throw new Error("Unable to determine site origin for redirect URL.");
   }
 
   return new URL(path, origin).toString();
+}
+
+async function requestOrigin(): Promise<string | null> {
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
+
+  if (!host) return null;
+
+  const proto = headersList.get("x-forwarded-proto") ?? "http";
+  return `${proto}://${host}`;
+}
+
+// Minimal, safe server-side log for an unexpected signup/auth-action failure -- no password,
+// confirmation, Supabase key, token, cookie, or email value, ever.
+function logUnexpectedAuthError(stage: string, error: unknown) {
+  const err = error as { name?: string; code?: string; status?: number; message?: string };
+  console.error(
+    JSON.stringify({
+      tag: "auth-action-error",
+      stage,
+      name: err?.name,
+      code: err?.code,
+      status: err?.status,
+      message: err?.message,
+    }),
+  );
 }
 
 export async function signUp(
@@ -55,7 +88,7 @@ export async function signUp(
 
   try {
     const supabase = await createClient();
-    const emailRedirectTo = appUrl("/auth/confirm");
+    const emailRedirectTo = await appUrl("/auth/confirm");
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -63,9 +96,11 @@ export async function signUp(
     });
 
     if (error) {
+      logUnexpectedAuthError("signup", error);
       return { error: "تعذر إنشاء الحساب الآن. حاول مرة أخرى لاحقًا." };
     }
-  } catch {
+  } catch (err) {
+    logUnexpectedAuthError("signup", err);
     return { error: "تعذر إنشاء الحساب الآن. حاول مرة أخرى لاحقًا." };
   }
 
@@ -109,10 +144,12 @@ export async function requestPasswordReset(
 
   try {
     const supabase = await createClient();
-    const redirectTo = appUrl("/auth/confirm");
+    const redirectTo = await appUrl("/auth/confirm");
     await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-  } catch {
-    // Keep this response non-enumerating and do not disclose provider details.
+  } catch (err) {
+    // Keep this response non-enumerating and do not disclose provider details to the caller,
+    // but still record the unexpected failure server-side.
+    logUnexpectedAuthError("password-reset-request", err);
   }
 
   redirect("/forgot-password?sent=1");
