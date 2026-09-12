@@ -33,7 +33,7 @@ export default async function SectionDetailPage({
   // A single RLS-scoped lookup: not_found covers a nonexistent id, a fixed-kind id, a hidden
   // owner_only section, and a section belonging to another Household identically -- no
   // distinguishing information is ever leaked back through this route (see ./data.ts).
-  const view = await loadSectionDetail(supabase, periodSectionBudgetId);
+  const view = await loadSectionDetail(supabase, periodSectionBudgetId, claims.claims.sub);
   if (view.status === "not_found") notFound();
 
   const addExpenseHref = `/app/expenses/new?section=${periodSectionBudgetId}`;

@@ -30,10 +30,17 @@ export type SectionDetailView =
  * Member, and an anonymous/unauthenticated caller alike -- so a single `.maybeSingle()` miss
  * is the one safe "not found" outcome for every one of those cases, with no distinguishing
  * information leaked. No service-role client, no pre-fetch-then-filter.
+ *
+ * `uid` is required for the household_members lookup specifically: that table's RLS policy
+ * (`is_household_member(household_id)`) grants a caller read access to every membership row in
+ * their own Household, not just their own row, so the query must filter by `user_id` itself --
+ * omitting it let `.maybeSingle()` see more than one row in any Household with more than one
+ * active member (i.e. any Household with a Member at all) and silently resolve to `not_found`.
  */
 export async function loadSectionDetail(
   supabase: Awaited<ReturnType<typeof createClient>>,
   periodSectionBudgetId: string,
+  uid: string,
 ): Promise<SectionDetailView> {
   const { data: psb } = await supabase
     .from("period_section_budgets")
@@ -60,6 +67,7 @@ export async function loadSectionDetail(
       .from("household_members")
       .select("role")
       .eq("household_id", period.household_id)
+      .eq("user_id", uid)
       .eq("status", "active")
       .maybeSingle(),
     supabase
