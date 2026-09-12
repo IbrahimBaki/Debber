@@ -100,15 +100,14 @@ export async function voidExpenseAction(_previousState: ExpenseActionState, form
   const transactionId = String(formData.get("transactionId") ?? "");
   if (!uuidPattern.test(transactionId)) return { error: "تعذر التعرف على المصروف." };
 
-  // Looked up before voiding purely to know which section detail route to revalidate --
-  // void_transaction(...) re-derives its own authorization regardless of this read.
-  const { data: transactionRow } = await supabase
-    .from("transactions")
-    .select("period_section_budget_id")
-    .eq("id", transactionId)
-    .maybeSingle();
-
-  const { error } = await supabase.rpc("void_transaction", { p_transaction_id: transactionId });
+  // The section lookup exists purely to know which section detail route to revalidate --
+  // void_transaction(...) re-derives its own authorization regardless of this read, and voiding
+  // never changes period_section_budget_id, so this can safely run in parallel with the
+  // mutation rather than block in front of it.
+  const [{ data: transactionRow }, { error }] = await Promise.all([
+    supabase.from("transactions").select("period_section_budget_id").eq("id", transactionId).maybeSingle(),
+    supabase.rpc("void_transaction", { p_transaction_id: transactionId }),
+  ]);
   if (error) return { error: friendlyError(error, "تعذر إلغاء المصروف الآن. حاول مرة أخرى.") };
 
   revalidatePath("/app/expenses/new");

@@ -1,5 +1,7 @@
 import type { createClient } from "@/lib/supabase/server";
 
+import type { ResolvedPeriod } from "../period-context";
+
 export type EligibleSection = {
   id: string; // period_section_budget_id -- the id record_expense expects
   sectionId: string;
@@ -38,22 +40,16 @@ export type ExpenseEligibility =
  * to extend. Excluding a hypothetical custom-granted section is a UX gap (they wouldn't see it
  * in the selector), never a privacy or authorization gap: record_expense() re-derives
  * authorization itself regardless of what this selector shows.
+ *
+ * `period` is resolved once per request by the caller (see ../period-context.ts); this function
+ * no longer calls ensure_budget_period(...) itself.
  */
 export async function resolveExpenseEligibility(
   supabase: Awaited<ReturnType<typeof createClient>>,
   household: { id: string; timezone: string },
   role: "owner" | "member",
+  period: ResolvedPeriod | null,
 ): Promise<ExpenseEligibility> {
-  const { data: periodId, error: periodError } = await supabase.rpc("ensure_budget_period", {
-    p_household_id: household.id,
-  });
-  if (periodError || !periodId) return { status: "no_period" };
-
-  const { data: period } = await supabase
-    .from("budget_periods")
-    .select("id, start_date, end_date, status")
-    .eq("id", periodId)
-    .maybeSingle();
   if (!period) return { status: "no_period" };
 
   if (period.status !== "open") {
@@ -105,8 +101,8 @@ export async function resolveExpenseEligibility(
   return {
     status: "open",
     periodId: period.id,
-    periodStart: period.start_date,
-    periodEnd: period.end_date,
+    periodStart: period.startDate,
+    periodEnd: period.endDate,
     today,
     sections: eligibleRows.map((row) => ({
       id: row.id,

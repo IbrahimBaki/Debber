@@ -1,5 +1,7 @@
 import type { createClient } from "@/lib/supabase/server";
 
+import type { ResolvedPeriod } from "./period-context";
+
 export type MemberSection = {
   id: string; // period_section_budget_id -- what record_expense expects
   sectionId: string;
@@ -33,25 +35,19 @@ export type MemberMonthlyView =
  * (can_view_section(...)) already returns only what this specific Member is authorized to
  * see, so this function does not re-derive visibility -- it only shapes and sums what RLS
  * already handed back.
+ *
+ * `period` is resolved once per request by the caller (see ./period-context.ts); this function
+ * no longer calls ensure_budget_period(...) itself.
  */
 export async function loadMemberMonthlyView(
   supabase: Awaited<ReturnType<typeof createClient>>,
   household: { id: string },
+  period: ResolvedPeriod | null,
 ): Promise<MemberMonthlyView> {
-  const { data: periodId, error: periodError } = await supabase.rpc("ensure_budget_period", {
-    p_household_id: household.id,
-  });
-  if (periodError || !periodId) return { status: "no_period" };
-
-  const { data: period } = await supabase
-    .from("budget_periods")
-    .select("id, start_date, end_date, status, spending_budget")
-    .eq("id", periodId)
-    .maybeSingle();
   if (!period) return { status: "no_period" };
 
   if (period.status === "draft") {
-    return { status: "draft", periodStart: period.start_date, periodEnd: period.end_date };
+    return { status: "draft", periodStart: period.startDate, periodEnd: period.endDate };
   }
 
   const [{ data: sectionRows }, totalIncomeResult] = await Promise.all([
@@ -113,9 +109,9 @@ export async function loadMemberMonthlyView(
 
   return {
     status: period.status === "closed" ? "closed" : "open",
-    periodStart: period.start_date,
-    periodEnd: period.end_date,
-    spendingBudget: Number(period.spending_budget),
+    periodStart: period.startDate,
+    periodEnd: period.endDate,
+    spendingBudget: period.spendingBudget,
     totalIncome,
     sections,
     sharedSummary: { allocated: sharedAllocated, spent: sharedSpent, remaining: sharedAllocated - sharedSpent },

@@ -1,5 +1,7 @@
 import type { createClient } from "@/lib/supabase/server";
 
+import type { ResolvedPeriod } from "./period-context";
+
 export type OwnerCommitment = {
   id: string;
   name: string;
@@ -28,21 +30,15 @@ export type OwnerCommitmentsView =
  * Every bucketed total below is a plain sum of the exact rows returned, never a re-derivation
  * of the deeper income/budget arithmetic that already has one canonical source
  * (get_owner_period_planning_summary), which this loader intentionally does not duplicate.
+ *
+ * `period` is resolved once per request by the caller (see ./period-context.ts); this function
+ * no longer calls ensure_budget_period(...) itself.
  */
 export async function loadOwnerCommitments(
   supabase: Awaited<ReturnType<typeof createClient>>,
   household: { id: string; timezone: string },
+  period: ResolvedPeriod | null,
 ): Promise<OwnerCommitmentsView> {
-  const { data: periodId, error: periodError } = await supabase.rpc("ensure_budget_period", {
-    p_household_id: household.id,
-  });
-  if (periodError || !periodId) return { status: "no_period" };
-
-  const { data: period } = await supabase
-    .from("budget_periods")
-    .select("id, status")
-    .eq("id", periodId)
-    .maybeSingle();
   if (!period) return { status: "no_period" };
 
   const { data: rows } = await supabase

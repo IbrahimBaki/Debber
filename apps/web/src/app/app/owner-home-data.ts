@@ -1,5 +1,7 @@
 import type { createClient } from "@/lib/supabase/server";
 
+import type { ResolvedPeriod } from "./period-context";
+
 export type OwnerSection = {
   id: string; // period_section_budget_id
   sectionId: string;
@@ -30,25 +32,19 @@ export type OwnerHomeView =
  * formula -- never from summing section allocations, which may total less than the spending
  * budget (unallocated budget). Section cards are a separate, additional read of the exact
  * same flexible period_section_budgets/transactions rows the rest of the app already uses.
+ *
+ * `period` is resolved once per request by the caller (see ./period-context.ts); this function
+ * no longer calls ensure_budget_period(...) itself.
  */
 export async function loadOwnerHomeView(
   supabase: Awaited<ReturnType<typeof createClient>>,
   household: { id: string },
+  period: ResolvedPeriod | null,
 ): Promise<OwnerHomeView> {
-  const { data: periodId, error: periodError } = await supabase.rpc("ensure_budget_period", {
-    p_household_id: household.id,
-  });
-  if (periodError || !periodId) return { status: "no_period" };
-
-  const { data: period } = await supabase
-    .from("budget_periods")
-    .select("id, start_date, end_date, status")
-    .eq("id", periodId)
-    .maybeSingle();
   if (!period) return { status: "no_period" };
 
   if (period.status === "draft") {
-    return { status: "draft", periodStart: period.start_date, periodEnd: period.end_date };
+    return { status: "draft", periodStart: period.startDate, periodEnd: period.endDate };
   }
 
   const [{ data: summaryRows }, { data: sectionRows }] = await Promise.all([
@@ -98,8 +94,8 @@ export async function loadOwnerHomeView(
 
   return {
     status: period.status === "closed" ? "closed" : "open",
-    periodStart: period.start_date,
-    periodEnd: period.end_date,
+    periodStart: period.startDate,
+    periodEnd: period.endDate,
     spendingBudget: Number(summary?.spending_budget ?? 0),
     actualVariableSpending: Number(summary?.actual_variable_spending_total ?? 0),
     budgetRemaining: Number(summary?.budget_remaining ?? 0),
