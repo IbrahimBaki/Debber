@@ -28,18 +28,25 @@ For budget sections, `member_access` separately controls whether a visible membe
 
 ## 3. Permission matrix
 
+**Corrected for Admin v1 (D-034 in `docs/DECISIONS.md`):** an earlier version of this table
+claimed Super Admin could view hidden owner income and configure section budgets "via admin
+server." That was never implemented and is no longer the approved model — the financial privacy
+wall means Super Admin never sees financial data at all, regardless of admin status.
+
 | Capability | Owner | Member | Super Admin |
 | --- | ---: | ---: | ---: |
-| View own household | Yes | If active member | Yes via admin server |
-| View hidden owner income (individual rows) | Yes | No | Yes via admin server |
-| View aggregate total planned income for a period | Yes | Only if `households.share_total_income_with_members = true` (else `NULL`, distinct from a real `0`) | Yes via admin server |
-| Toggle total-income sharing for the household | Yes | No | Support/admin action only |
-| Configure section budgets | Yes | No | Support/admin action only |
-| Add expense to shared contributable section | Yes | Yes | Not through user workflow |
-| Change visibility | Yes | No | Support/admin action only |
-| View platform-wide users | No | No | Yes |
-| List `auth.users` | No | No | Yes, server-side Auth Admin API |
-| Bypass RLS | No | No | Server Secret-Key client only |
+| View own household | Yes | If active member | No (unless separately also a member) |
+| View hidden owner income (individual rows) | Yes | No | **No, never** |
+| View aggregate total planned income for a period | Yes | Only if `households.share_total_income_with_members = true` (else `NULL`, distinct from a real `0`) | **No, never** |
+| Toggle total-income sharing for the household | Yes | No | No |
+| Configure section budgets | Yes | No | No |
+| Add expense to shared contributable section | Yes | Yes | No |
+| Change visibility | Yes | No | No |
+| View safe Auth user fields (email, status, timestamps) | No | No | Yes, via `admin_list_users`/`admin_get_user` |
+| Create/activate/disable/enable/change password for a user | No | No | Yes, native Auth Admin API |
+| View a user's household memberships (name/role/status only) | No | No | Yes, via `admin_list_user_memberships` |
+| Create/accept/revoke a household invitation on behalf of the owner | No | No | Yes (never an arbitrary membership) |
+| Bypass RLS | No | No | Only the five named Auth Admin API operations — never for data reads |
 | Write admin audit log | No | No | Yes |
 
 ### 3.1 Total income sharing (MVP)
@@ -70,21 +77,25 @@ Every table exposed through the public API schema has RLS enabled. Grants and RL
 
 Authorization helper functions are `security definer` but expose only boolean/scoping decisions and use an empty `search_path` with fully-qualified relation names.
 
-## 6. Super Admin flow
+## 6. Super Admin flow (Admin v1 — see `docs/DECISIONS.md` D-034, `docs/SUPER_ADMIN.md`)
+
+Two distinct paths, never mixed:
 
 ```text
-Admin browser
-  ↓ normal login
-Next.js admin server
-  ↓ verify session
-platform_admins self-check under RLS
-  ↓ require active super_admin
-create server-only Secret-Key Supabase client
-  ↓ no end-user access token attached
-platform-wide query/Auth Admin API
+Ordinary read (users/invitations/audit/dashboard):
+Admin browser → normal login → session-authenticated client
+  → admin_list_users / admin_list_invitations / admin_list_audit_logs / ...
+    (each RPC independently re-checks is_platform_admin() -- RLS applies throughout)
+
+Privileged Auth mutation (create/activate/disable/enable/change password):
+Admin browser → normal login → requireAdmin() guard
+  → server-only Secret-Key client (no end-user access token attached)
+  → exactly one named Auth Admin API operation
+  → admin_record_audit_event(...) via the session-authenticated client
 ```
 
-The Secret Key never appears in client JavaScript, HTML, local storage, or a `NEXT_PUBLIC_*` environment variable.
+The Secret Key never appears in client JavaScript, HTML, local storage, or a `NEXT_PUBLIC_*`
+environment variable, and is never used for an ordinary data read.
 
 ## 7. Testing requirement
 
