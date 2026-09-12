@@ -11,31 +11,51 @@ app.dabber.example    → Household PWA
 admin.dabber.example  → Platform Super Admin
 ```
 
-## 2. Super Admin capabilities
+## 2. Super Admin capabilities (Admin v1 — see D-034)
 
-### MVP admin read access
+**Superseded:** an earlier draft of this section described Admin reading household budget
+periods, income data, sections, and transactions directly. That was never implemented and is no
+longer the approved model. D-034 (`docs/DECISIONS.md`) is authoritative.
 
-- All Supabase Auth users.
-- User auth metadata required for support.
-- All profiles.
-- All households and memberships.
-- Household budget periods.
-- Income data.
-- Sections and recurring items.
-- Transactions and audit events.
+### The financial privacy wall (the single most important Admin v1 requirement)
 
-### Privileged actions
+Admin must **never** see: individual income rows, total household income, expenses/transaction
+descriptions or amounts, the spending budget, section allocations, section spent/remaining, fixed
+commitment amounts, or any financial summary/aggregate derived from these. No RLS policy grants
+`super_admin` broad `SELECT` on any financial table, and none of the admin RPCs below read one. A
+`super_admin` acting under their own JWT gets exactly the same (zero) financial rows as any other
+authenticated user who is not a member of that household — being in the admin allowlist changes
+nothing about what a financial table or financial RPC returns.
 
-Add only with explicit confirmation and audit logging:
+### MVP admin read access (v1, all via narrow RPCs — never a raw table grant)
 
-- disable/ban an account;
-- revoke sessions where supported by the chosen flow;
-- update account/support state;
-- remove a member from a household when resolving a support issue;
-- archive a household;
-- corrective financial/admin actions with a required reason.
+- Safe Auth user fields: id, email, derived status (`active`/`needs_activation`/`disabled`),
+  `email_confirmed_at`, `banned_until`, `last_sign_in_at`, `created_at`. Never a password hash or
+  any Auth token column.
+- A user's Household memberships: household id/name, role, status, joined_at. Never
+  `currency_code`, `share_total_income_with_members`, or anything from `budget_periods`.
+- Household invitations: household, email, status, inviter display name, timestamps. Never
+  `token_hash`.
+- Admin audit log entries (see §7).
+- Non-financial operational counts (users, active/archived households, pending invitations,
+  active memberships) for the dashboard.
 
-Avoid editing financial history casually. Prefer support-safe operations and audit every mutation.
+### Privileged actions (v1)
+
+- Create an Auth user (active-immediately or needs-activation), activate, disable, re-enable,
+  change password — all native Supabase Auth Admin API operations, audited.
+- Create a Household invitation on behalf of the Household's Owner (existing invitation
+  semantics preserved exactly; `invited_by` stays the Owner, the real admin actor is recorded in
+  the audit log separately).
+- Accept an existing, valid invitation on behalf of its invitee, resolved strictly by the
+  invitation's own normalized email against an existing Auth user. There is no path to create an
+  arbitrary membership directly ("Add Member" does not exist); acceptance always goes through a
+  real invitation.
+- Revoke a pending invitation. An accepted invitation can never be revoked (no un-accepting a
+  real membership) and nothing is ever hard-deleted.
+
+Household archival, member removal outside the invitation flow, and any financial/corrective
+action are **not** part of Admin v1 and are not implemented.
 
 ## 3. Authentication and authorization
 
@@ -63,59 +83,56 @@ The Supabase Secret Key bypasses RLS and has broad data access. It must:
 - be instantiated in a dedicated server-only module;
 - not be combined with an end-user access token.
 
-## 5. Recommended request flow
+## 5. Request flow (Admin v1)
+
+Two distinct paths, never mixed:
 
 ```text
-GET /admin/users
+GET /users   (an ordinary DB read)
      │
-     ├─ validate normal user session
-     ├─ query own platform_admins marker under RLS
-     ├─ require active role = super_admin
-     ├─ instantiate server-only privileged client
-     ├─ call auth.admin.listUsers() / database queries
-     └─ return only the fields the Admin UI needs
+     ├─ validate normal user session (authenticated client, cookie-based)
+     ├─ call admin_list_users(...) -- a security-definer RPC that itself
+     │  re-checks is_platform_admin() before returning any row
+     └─ render only the safe fields the RPC returned
+
+POST create user   (a privileged Auth mutation)
+     │
+     ├─ validate normal user session + is_platform_admin() (same check, via a
+     │  narrow RPC or a server-side guard backed by the same allowlist query)
+     ├─ only then instantiate the server-only privileged Auth-admin module
+     ├─ call exactly one named operation (createAuthUser/activateAuthUser/
+     │  disableAuthUser/enableAuthUser/setAuthUserPassword)
+     └─ record the mutation via admin_record_audit_event(...)
 ```
 
-Even though the operator has full platform access, return minimum necessary payloads to each browser screen.
+The privileged client (Secret Key) is never used for ordinary reads — all reads go through
+session-authenticated RPCs that independently re-verify `is_platform_admin()`. This matters
+because a page/layout guard is not authorization; every RPC and every server action re-checks.
 
-## 6. Admin dashboard information architecture
+## 6. Admin dashboard information architecture (v1)
 
 ```text
-Dashboard
-Users
-Households
-Budgets
-Transactions
-Recurring Items
-Audit Logs
-System
+الرئيسية (dashboard: non-financial operational counts only)
+المستخدمون (users)
+الدعوات (invitations)
+سجل الإدارة (audit log)
 ```
 
-User inspector:
+No "Budgets", "Transactions", "Recurring Items", or "Households" nav item exists in v1 — there is
+no dedicated households screen; household context (name, membership) is surfaced only from a
+user's detail page, since discovering a household still requires knowing a user in it.
+
+User detail page:
 
 ```text
-Profile
-Auth info
-Last sign-in
-Memberships
-Owned households
-Recent activity
-Admin actions
+Email / status (active, needs activation, disabled)
+Created at / last sign-in
+Household memberships (household name, role, status) -- no financial data
+Admin actions: activate, disable, re-enable, change password (each confirmed, each audited)
 ```
 
-Household inspector:
-
-```text
-Owner
-Members
-Settings
-Periods
-Income
-Sections
-Recurring items
-Transactions
-Household audit log
-```
+There is no household inspector, budgets view, transactions view, or recurring-items view in
+Admin v1 — these would require the financial privacy wall to be broken, and it is not.
 
 ## 7. Audit requirements
 

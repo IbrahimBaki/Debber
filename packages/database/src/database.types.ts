@@ -39,33 +39,57 @@ export type Database = {
           action: string
           admin_user_id: string
           created_at: string
+          household_id: string | null
           id: number
+          invitation_id: string | null
           metadata: Json
           reason: string | null
           target_id: string | null
           target_type: string
+          target_user_id: string | null
         }
         Insert: {
           action: string
           admin_user_id: string
           created_at?: string
+          household_id?: string | null
           id?: never
+          invitation_id?: string | null
           metadata?: Json
           reason?: string | null
           target_id?: string | null
           target_type: string
+          target_user_id?: string | null
         }
         Update: {
           action?: string
           admin_user_id?: string
           created_at?: string
+          household_id?: string | null
           id?: never
+          invitation_id?: string | null
           metadata?: Json
           reason?: string | null
           target_id?: string | null
           target_type?: string
+          target_user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_logs_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_audit_logs_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "household_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_events: {
         Row: {
@@ -929,6 +953,112 @@ export type Database = {
       accept_household_invitation_internal: {
         Args: { p_invitation_id: string }
         Returns: string
+      }
+      admin_accept_household_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: string
+      }
+      admin_create_household_invitation: {
+        Args: { p_email: string; p_household_id: string }
+        Returns: {
+          created: boolean
+          email: string
+          expires_at: string
+          invitation_id: string
+        }[]
+      }
+      admin_dashboard_counts: {
+        Args: never
+        Returns: {
+          households_active: number
+          households_archived: number
+          invitations_pending: number
+          memberships_active: number
+          users_total: number
+        }[]
+      }
+      admin_get_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          banned_until: string
+          created_at: string
+          email: string
+          email_confirmed_at: string
+          last_sign_in_at: string
+          status: string
+          user_id: string
+        }[]
+      }
+      admin_list_audit_logs: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          action: string
+          admin_email: string
+          created_at: string
+          household_id: string
+          id: number
+          invitation_id: string
+          reason: string
+          target_id: string
+          target_type: string
+          target_user_id: string
+        }[]
+      }
+      admin_list_invitations: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search_email?: string
+          p_status?: Database["public"]["Enums"]["invitation_status"]
+        }
+        Returns: {
+          created_at: string
+          email: string
+          expires_at: string
+          household_id: string
+          household_name: string
+          invitation_id: string
+          invited_by_display_name: string
+          status: Database["public"]["Enums"]["invitation_status"]
+        }[]
+      }
+      admin_list_user_memberships: {
+        Args: { p_user_id: string }
+        Returns: {
+          household_id: string
+          household_name: string
+          joined_at: string
+          role: Database["public"]["Enums"]["household_role"]
+          status: Database["public"]["Enums"]["member_status"]
+        }[]
+      }
+      admin_list_users: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          banned_until: string
+          created_at: string
+          email: string
+          email_confirmed_at: string
+          last_sign_in_at: string
+          status: string
+          user_id: string
+        }[]
+      }
+      admin_record_audit_event: {
+        Args: {
+          p_action: string
+          p_household_id?: string
+          p_invitation_id?: string
+          p_reason?: string
+          p_target_id?: string
+          p_target_type: string
+          p_target_user_id?: string
+        }
+        Returns: undefined
+      }
+      admin_revoke_household_invitation: {
+        Args: { p_invitation_id: string; p_reason?: string }
+        Returns: undefined
       }
       can_contribute_to_section: {
         Args: { p_section_id: string }

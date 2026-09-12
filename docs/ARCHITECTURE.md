@@ -44,23 +44,34 @@ Security context:
 - RLS is always expected to apply.
 - Never uses the Secret Key.
 
-### Super Admin — `apps/admin`
+### Super Admin — `apps/admin` (Admin v1 — see `docs/DECISIONS.md` D-034, `docs/SUPER_ADMIN.md`)
+
+**Superseded:** an earlier draft of this section described a Households/Budgets/transactions
+inspector and a privileged client used for ordinary database reads. Admin v1 does not do either;
+the financial privacy wall means Admin never reads financial data, and the Secret Key client is
+reserved for exactly five named Auth Admin operations, never for ordinary reads.
 
 Responsibilities:
 
-- Platform dashboard.
-- Users inspector.
-- Households inspector.
-- Budgets/transactions inspector.
-- Support and account administration.
-- Platform/admin audit logs.
+- Platform dashboard (non-financial operational counts only).
+- Users list/detail, create/activate/disable/enable/change-password.
+- Household invitations: list, create-on-behalf, accept-on-behalf, revoke.
+- Admin audit log (read-only).
 
 Security context:
 
-- First authenticates the operator normally.
-- Verifies `platform_admins` server-side.
-- Privileged database and Auth Admin calls use a dedicated server-only client initialized with `SUPABASE_SECRET_KEY`.
-- The privileged client must not carry an end-user access token, because that would cause the request to run under user RLS context instead of bypassing RLS.
+- First authenticates the operator normally (its own `/login`, no public signup).
+- Ordinary reads go through session-authenticated, security-definer RPCs (`admin_list_users`,
+  `admin_get_user`, `admin_list_user_memberships`, `admin_list_invitations`,
+  `admin_list_audit_logs`, `admin_dashboard_counts`) that each independently re-check
+  `is_platform_admin()` — never a raw table grant, never solely a page/layout guard.
+- The five privileged Auth Admin operations (create/activate/disable/enable/change-password) use
+  a dedicated server-only module initialized with `SUPABASE_SECRET_KEY`. That module is never
+  used for ordinary database reads and never receives an end-user access token.
+- No RLS policy grants `super_admin` access to `period_income_items`, `transactions`,
+  `period_fixed_commitments`, `period_section_budgets`, or `budget_periods.spending_budget`. A
+  `super_admin` acting under their own JWT sees exactly the same (zero) financial rows as any
+  other non-member.
 
 ## 3. Recommended monorepo
 

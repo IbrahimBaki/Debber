@@ -186,6 +186,13 @@ create table public.admin_audit_logs (
   action text not null,
   target_type text not null,
   target_id text,
+  -- Structured, nullable references alongside the generic target_type/target_id pair: an admin
+  -- mutation typically concerns a specific Auth user and/or a specific Household/invitation, and
+  -- typed columns let the Admin audit UI and pgTAP assertions join/filter without parsing text.
+  -- Never populated with financial values -- see docs/DECISIONS.md D-034.
+  target_user_id uuid references auth.users(id),
+  household_id uuid references public.households(id),
+  invitation_id uuid references public.household_invitations(id),
   reason text,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
