@@ -1,0 +1,165 @@
+.shell { display: flex; flex-direction: column; min-height: 100dvh; }
+.body { flex: 1; min-width: 0; padding-bottom: calc(4.75rem + env(safe-area-inset-bottom)); }
+
+/* ---------- Desktop / tablet navbar ---------- */
+.desktopBar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--ui-surface);
+  border-bottom: 1px solid var(--ui-border);
+}
+.desktopBarInner {
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding-inline: var(--space-6);
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+.brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ui-text); text-decoration: none; flex: 0 0 auto; }
+.brandMark { width: 1.75rem; height: 1.75rem; border-radius: var(--radius-sm); background: var(--ui-brand); }
+.brandHouseholdName { font-weight: 800; font-size: .95rem; max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.desktopNav { display: flex; align-items: center; gap: var(--space-1); flex: 1; }
+.desktopSecondary { display: flex; align-items: center; gap: var(--space-3); flex: 0 0 auto; }
+
+.secondaryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 2.5rem;
+  padding-inline: var(--space-2);
+  color: var(--ui-text-muted);
+  text-decoration: none;
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 700;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.secondaryLink:hover { color: var(--ui-text); background: var(--dabber-sand); }
+
+/* ---------- Shared nav item (both bars) ---------- */
+.navItem, .navItemPrimary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .2rem;
+  min-height: 2.75rem;
+  color: var(--ui-text-muted);
+  text-decoration: none;
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+.navIcon, .navIconPrimary { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.navLabel { font-size: .68rem; font-weight: 700; }
+
+.navItem[data-active="true"] { color: var(--ui-brand-strong); }
+.navItem[data-active="true"] .navLabel { font-weight: 800; }
+.navItem[data-active="true"] .navIcon::after {
+  content: "";
+  position: absolute;
+  bottom: -.45rem;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: .3rem;
+  height: .3rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.navItemPrimary { color: var(--ui-brand-strong); }
+.navIconPrimary {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--ui-brand);
+  color: var(--ui-text-on-dark);
+}
+
+/* ---------- Mobile bottom bar ---------- */
+.mobileBar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  background: var(--ui-surface);
+  border-top: 1px solid var(--ui-border);
+  box-shadow: var(--shadow-lift);
+  padding-inline: var(--space-1);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mobileBar .navItem, .mobileBar .navItemPrimary { flex: 1; min-height: 3.25rem; padding-block: var(--space-1); }
+
+/* ---------- "More" sheet ---------- */
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(30 26 20 / .35);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet {
+  width: 100%;
+  max-width: 28rem;
+  background: var(--ui-surface-raised);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lift);
+  padding: var(--space-3) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom));
+  display: grid;
+  gap: var(--space-1);
+}
+.sheetHandle { width: 2.5rem; height: .28rem; margin: var(--space-2) auto var(--space-3); border-radius: var(--radius-pill); background: var(--ui-border-strong); }
+.sheetLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3rem;
+  padding-inline: var(--space-3);
+  color: var(--ui-text);
+  text-decoration: none;
+  font: inherit;
+  font-size: .92rem;
+  font-weight: 700;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: start;
+  width: 100%;
+}
+.sheetLink:hover { background: var(--dabber-sand); }
+.sheetClose {
+  margin-top: var(--space-2);
+  min-height: 2.75rem;
+  color: var(--ui-text-muted);
+  font: inherit;
+  font-weight: 700;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+@media (min-width: 64rem) {
+  .desktopBar { display: block; }
+  .mobileBar { display: none; }
+  .body { padding-bottom: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navItem, .navItemPrimary, .secondaryLink, .sheetLink { transition: none; }
+}

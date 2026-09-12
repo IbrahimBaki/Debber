@@ -71,6 +71,7 @@ export function InvitePartnerForm({
             {pending ? "جارٍ الإنشاء…" : "إنشاء الدعوة"}
           </button>
         </form>
+        <Link className={styles.quietButton} href="/app">رجوع</Link>
       </section>
     </main>
   );

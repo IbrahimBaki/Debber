@@ -6,7 +6,9 @@ import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/app/app/plan/icons";
 import { createClient } from "@/lib/supabase/server";
 
+import { AppShell, type AppNavContext } from "../../app-shell";
 import { resolveExpenseEligibility } from "../eligibility";
+import { resolveCurrentPeriod } from "../../period-context";
 import { ExpenseFormClient } from "./expense-form-client";
 import styles from "./expenses.module.css";
 
@@ -52,11 +54,25 @@ export default async function NewExpensePage({
   if (!household) redirect("/app");
 
   const role = membership.role === "owner" ? "owner" : "member";
-  const eligibility = await resolveExpenseEligibility(supabase, household, role);
+  const period = await resolveCurrentPeriod(supabase, household.id);
+  const eligibility = await resolveExpenseEligibility(supabase, household, role, period);
+
+  // A query-param preselection is only a UX hint: it must match a section the caller's own
+  // eligibility already returned, or it is silently ignored (§10). The same validated,
+  // same-origin section id also decides the safe "back" destination -- never an arbitrary
+  // caller-supplied URL, just a fixed /app/sections/<validated-uuid> path -- so opening the
+  // form from a section detail page returns there instead of always landing on /app.
+  const { section: requestedSection } = await searchParams;
+  const eligibleSections = eligibility.status === "open" ? eligibility.sections : [];
+  const initialSectionId = eligibleSections.some((section) => section.id === requestedSection)
+    ? requestedSection
+    : undefined;
+  const returnHref = initialSectionId ? `/app/sections/${initialSectionId}` : "/app";
+  const returnLabel = initialSectionId ? "رجوع للقسم" : "رجوع للرئيسية";
 
   const header = (
     <header className={styles.header}>
-      <Link href="/app" className={styles.backLink} aria-label="رجوع"><Icon name="arrow" size={20} /></Link>
+      <Link href={returnHref} className={styles.backLink} aria-label={returnLabel}><Icon name="arrow" size={20} /></Link>
       <h1>إضافة مصروف</h1>
       <span style={{ width: "2.5rem" }} aria-hidden="true" />
     </header>
@@ -64,82 +80,90 @@ export default async function NewExpensePage({
 
   if (eligibility.status === "no_period") redirect("/app");
 
+  const nav: AppNavContext = {
+    role,
+    periodStatus: eligibility.status === "not_open" ? eligibility.periodStatus : "open",
+    canRecordExpense: eligibility.status === "open" && eligibility.sections.length > 0,
+  };
+
   if (eligibility.status === "not_open") {
     if (role === "owner") {
       return (
-        <main className={styles.page} dir="rtl">
-          <div className={styles.content}>
-            {header}
-            <StateCard
-              title={eligibility.periodStatus === "draft" ? "الشهر لسه ما بدأش" : "الشهر ده مقفول"}
-              body={
-                eligibility.periodStatus === "draft"
-                  ? "جهّز خطة الشهر وابدأه عشان تقدر تسجل مصروفات."
-                  : "الشهر ده مقفول ومش متاح لتسجيل مصروفات جديدة."
-              }
-              action={eligibility.periodStatus === "draft" ? <Link className={styles.primaryButton} href="/app/plan">خطة الشهر</Link> : null}
-            />
-          </div>
-        </main>
+        <AppShell nav={nav} active="add" householdName={household.name}>
+          <main className={styles.page} dir="rtl">
+            <div className={styles.content}>
+              {header}
+              <StateCard
+                title={eligibility.periodStatus === "draft" ? "الشهر لسه ما بدأش" : "الشهر ده مقفول"}
+                body={
+                  eligibility.periodStatus === "draft"
+                    ? "جهّز خطة الشهر وابدأه عشان تقدر تسجل مصروفات."
+                    : "الشهر ده مقفول ومش متاح لتسجيل مصروفات جديدة."
+                }
+                action={eligibility.periodStatus === "draft" ? <Link className={styles.primaryButton} href="/app/plan">خطة الشهر</Link> : null}
+              />
+            </div>
+          </main>
+        </AppShell>
       );
     }
     return (
-      <main className={styles.page} dir="rtl">
-        <div className={styles.content}>
-          {header}
-          <StateCard title="الشهر لسه ما بدأش" body="لسه مفيش شهر مفتوح لتسجيل المصروفات." />
-        </div>
-      </main>
+      <AppShell nav={nav} active="add" householdName={household.name}>
+        <main className={styles.page} dir="rtl">
+          <div className={styles.content}>
+            {header}
+            <StateCard title="الشهر لسه ما بدأش" body="لسه مفيش شهر مفتوح لتسجيل المصروفات." />
+          </div>
+        </main>
+      </AppShell>
     );
   }
 
   if (eligibility.sections.length === 0) {
     if (role === "owner") {
       return (
-        <main className={styles.page} dir="rtl">
-          <div className={styles.content}>
-            {header}
-            <StateCard
-              icon="spark"
-              title="مفيش أقسام بعد"
-              body="أضف قسم مصروف في خطة الشهر عشان تقدر تسجل مصروفات."
-              action={<Link className={styles.primaryButton} href="/app/plan">خطة الشهر</Link>}
-            />
-          </div>
-        </main>
+        <AppShell nav={nav} active="add" householdName={household.name}>
+          <main className={styles.page} dir="rtl">
+            <div className={styles.content}>
+              {header}
+              <StateCard
+                icon="spark"
+                title="مفيش أقسام بعد"
+                body="أضف قسم مصروف في خطة الشهر عشان تقدر تسجل مصروفات."
+                action={<Link className={styles.primaryButton} href="/app/plan">خطة الشهر</Link>}
+              />
+            </div>
+          </main>
+        </AppShell>
       );
     }
     return (
-      <main className={styles.page} dir="rtl">
-        <div className={styles.content}>
-          {header}
-          <StateCard icon="spark" title="مفيش أقسام متاحة" body="مفيش أقسام متاحة ليك لتسجيل مصروف دلوقتي." />
-        </div>
-      </main>
+      <AppShell nav={nav} active="add" householdName={household.name}>
+        <main className={styles.page} dir="rtl">
+          <div className={styles.content}>
+            {header}
+            <StateCard icon="spark" title="مفيش أقسام متاحة" body="مفيش أقسام متاحة ليك لتسجيل مصروف دلوقتي." />
+          </div>
+        </main>
+      </AppShell>
     );
   }
 
-  // A query-param preselection is only a UX hint (§10): it must match a section the caller's
-  // own eligibility already returned, or it is silently ignored and the normal default
-  // (first eligible section) applies. record_expense(...) re-derives authorization itself
-  // regardless of what gets preselected here.
-  const { section: requestedSection } = await searchParams;
-  const initialSectionId = eligibility.sections.some((section) => section.id === requestedSection)
-    ? requestedSection
-    : undefined;
-
   return (
-    <main className={styles.page} dir="rtl">
-      <div className={styles.content}>
-        {header}
-        <ExpenseFormClient
-          currencyCode={household.currency_code}
-          periodStart={eligibility.periodStart}
-          today={eligibility.today}
-          sections={eligibility.sections}
-          initialSectionId={initialSectionId}
-        />
-      </div>
-    </main>
+    <AppShell nav={nav} active="add" householdName={household.name}>
+      <main className={styles.page} dir="rtl">
+        <div className={styles.content}>
+          {header}
+          <ExpenseFormClient
+            currencyCode={household.currency_code}
+            periodStart={eligibility.periodStart}
+            today={eligibility.today}
+            sections={eligibility.sections}
+            initialSectionId={initialSectionId}
+            returnHref={returnHref}
+          />
+        </div>
+      </main>
+    </AppShell>
   );
 }

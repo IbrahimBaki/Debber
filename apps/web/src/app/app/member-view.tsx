@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { formatDateRange } from "./plan/format";
 import { Icon } from "./plan/icons";
 import planStyles from "./plan/plan.module.css";
@@ -56,12 +54,10 @@ export function MemberMonthlyViewPanel({
   householdName,
   currencyCode,
   view,
-  canRecordExpense,
 }: {
   householdName: string;
   currencyCode: string;
   view: MemberMonthlyView;
-  canRecordExpense: boolean;
 }) {
   if (view.status === "no_period") {
     return (
@@ -103,9 +99,6 @@ export function MemberMonthlyViewPanel({
             sharedRemaining={sharedSummary.remaining}
             currencyCode={currencyCode}
           />
-          {view.status === "open" && canRecordExpense ? (
-            <Link className={ownerHomeStyles.heroCta} href="/app/expenses/new">إضافة مصروف</Link>
-          ) : null}
         </div>
       ) : null}
 
@@ -126,7 +119,7 @@ export function MemberMonthlyViewPanel({
       </div>
 
       {hasSharedSections ? (
-        <section aria-labelledby="sections-title">
+        <section id="app-sections" aria-labelledby="sections-title">
           <h2 id="sections-title" className={styles.sectionsHeading}>
             الأقسام
           </h2>

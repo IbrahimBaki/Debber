@@ -5,37 +5,11 @@
 .stack { display: grid; gap: var(--space-6); }
 
 /* Groups the hero with its primary action so the CTA reads as "the thing to do about this
-   number" rather than a stray full-width button floating before the next heading. */
+   number" rather than a stray full-width button floating before the next heading. Now holds
+   only the hero itself -- "إضافة مصروف" moved to the persistent app navigation (see
+   ../app-shell.tsx), which made a second, equally-prominent CTA directly under the hero
+   redundant rather than helpful. */
 .heroGroup { display: grid; gap: var(--space-3); }
-
-/* The "إضافة مصروف" action, scoped to sit directly under a hero: sized for a clear ≥44px
-   touch target but intentionally NOT full-width/floating (no shadow-float) like the
-   full-bleed .primaryButton elsewhere -- it should read as subordinate to the hero's large
-   number, not compete with it. */
-.heroCta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  justify-self: center;
-  gap: .4rem;
-  min-height: 2.75rem;
-  padding-inline: var(--space-5);
-  color: var(--ui-text-on-dark);
-  text-decoration: none;
-  font: inherit;
-  font-size: .92rem;
-  font-weight: 800;
-  background: var(--ui-brand);
-  border: 0;
-  border-radius: var(--radius-pill);
-  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
-}
-.heroCta:hover { background: var(--ui-brand-strong); transform: translateY(-1px); }
-.heroCta:focus-visible { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .heroCta { transition: none; }
-}
 
 /* Desktop-only two-proportional-column composition for the flexible sections and fixed
    commitments, matching DESIGN.md's documented >=72rem layout ("budget sections and recurring

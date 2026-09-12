@@ -11,6 +11,8 @@ export type SectionDetailView =
   | { status: "not_found" }
   | {
       status: "found";
+      householdName: string;
+      role: "owner" | "member";
       sectionName: string;
       currencyCode: string;
       periodStatus: "draft" | "open" | "closed";
@@ -61,7 +63,7 @@ export async function loadSectionDetail(
   if (!period) return { status: "not_found" };
 
   const [{ data: household }, { data: sectionMeta }, { data: membership }, { data: txRows }] = await Promise.all([
-    supabase.from("households").select("currency_code").eq("id", period.household_id).maybeSingle(),
+    supabase.from("households").select("name, currency_code").eq("id", period.household_id).maybeSingle(),
     supabase.from("budget_sections").select("visibility_scope, member_access").eq("id", psb.section_id).maybeSingle(),
     supabase
       .from("household_members")
@@ -90,6 +92,8 @@ export async function loadSectionDetail(
 
   return {
     status: "found",
+    householdName: household.name,
+    role: isOwner ? "owner" : "member",
     sectionName: psb.section_name_snapshot,
     currencyCode: household.currency_code,
     periodStatus: period.status,

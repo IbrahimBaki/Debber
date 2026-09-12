@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
+import { AppShell, type AppNavContext } from "../app-shell";
 import { ClosedPanel } from "./closed-panel";
 import { PlanClient } from "./plan-client";
 
@@ -48,7 +49,12 @@ export default async function PlanPage() {
   if (!period) redirect("/app");
 
   if (period.status === "closed") {
-    return <ClosedPanel householdName={household.name} periodStart={period.start_date} periodEnd={period.end_date} />;
+    const nav: AppNavContext = { role: "owner", periodStatus: "closed", canRecordExpense: false };
+    return (
+      <AppShell nav={nav} active="plan" householdName={household.name}>
+        <ClosedPanel householdName={household.name} periodStart={period.start_date} periodEnd={period.end_date} />
+      </AppShell>
+    );
   }
 
   const [{ data: summaryRows }, { data: income }, { data: commitments }, { data: sections }, { data: templates }] =
@@ -77,31 +83,39 @@ export default async function PlanPage() {
 
   const summary = summaryRows?.[0] ?? null;
   const activeTemplateIds = new Set((templates ?? []).filter((template) => template.is_active).map((template) => template.id));
+  const mode = period.status === "open" ? "open" : "draft";
+  const nav: AppNavContext = {
+    role: "owner",
+    periodStatus: mode,
+    canRecordExpense: mode === "open" && (sections ?? []).length > 0,
+  };
 
   return (
-    <PlanClient
-      mode={period.status === "open" ? "open" : "draft"}
-      household={household}
-      period={{ id: period.id, periodKey: period.period_key, startDate: period.start_date, endDate: period.end_date }}
-      summary={summary}
-      income={income ?? []}
-      commitments={(commitments ?? []).map((commitment) => ({
-        ...commitment,
-        isRecurringActive: commitment.fixed_commitment_template_id
-          ? activeTemplateIds.has(commitment.fixed_commitment_template_id)
-          : false,
-      }))}
-      sections={(sections ?? []).map((section) => {
-        const meta = Array.isArray(section.budget_sections) ? section.budget_sections[0] : section.budget_sections;
-        return {
-          id: section.id,
-          section_id: section.section_id,
-          section_name_snapshot: section.section_name_snapshot,
-          planned_amount: section.planned_amount,
-          visibility_scope: meta?.visibility_scope ?? "owner_only",
-          member_access: meta?.member_access ?? "view",
-        };
-      })}
-    />
+    <AppShell nav={nav} active="plan" householdName={household.name}>
+      <PlanClient
+        mode={mode}
+        household={household}
+        period={{ id: period.id, periodKey: period.period_key, startDate: period.start_date, endDate: period.end_date }}
+        summary={summary}
+        income={income ?? []}
+        commitments={(commitments ?? []).map((commitment) => ({
+          ...commitment,
+          isRecurringActive: commitment.fixed_commitment_template_id
+            ? activeTemplateIds.has(commitment.fixed_commitment_template_id)
+            : false,
+        }))}
+        sections={(sections ?? []).map((section) => {
+          const meta = Array.isArray(section.budget_sections) ? section.budget_sections[0] : section.budget_sections;
+          return {
+            id: section.id,
+            section_id: section.section_id,
+            section_name_snapshot: section.section_name_snapshot,
+            planned_amount: section.planned_amount,
+            visibility_scope: meta?.visibility_scope ?? "owner_only",
+            member_access: meta?.member_access ?? "view",
+          };
+        })}
+      />
+    </AppShell>
   );
 }

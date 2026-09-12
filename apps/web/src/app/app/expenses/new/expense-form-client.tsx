@@ -25,12 +25,14 @@ export function ExpenseFormClient({
   today,
   sections,
   initialSectionId,
+  returnHref,
 }: {
   currencyCode: string;
   periodStart: string;
   today: string;
   sections: EligibleSection[];
   initialSectionId?: string;
+  returnHref: string;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<"form" | "success" | "voided">("form");
@@ -86,7 +88,7 @@ export function ExpenseFormClient({
           <button type="button" className={styles.primaryButton} onClick={() => startNewExpense()}>
             إضافة مصروف آخر
           </button>
-          <Link href="/app" className={styles.quietLink}>رجوع</Link>
+          <Link href={returnHref} className={styles.quietLink}>رجوع</Link>
 
           <div className={styles.dangerZone}>
             {confirmingVoid ? (
@@ -126,7 +128,7 @@ export function ExpenseFormClient({
           <button type="button" className={styles.primaryButton} onClick={() => startNewExpense(sectionId)}>
             تسجيل المصروف الصحيح
           </button>
-          <Link href="/app" className={styles.quietLink}>رجوع</Link>
+          <Link href={returnHref} className={styles.quietLink}>رجوع</Link>
         </div>
       </div>
     );

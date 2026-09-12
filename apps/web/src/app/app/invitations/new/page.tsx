@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
+import { AppShell, type AppNavContext } from "../../app-shell";
+import { resolveExpenseEligibility } from "../../expenses/eligibility";
+import { resolveCurrentPeriod } from "../../period-context";
 import { InvitePartnerForm } from "./invite-partner-form";
 
 export const metadata: Metadata = { title: "دعوة شريك" };
@@ -28,10 +31,22 @@ export default async function InviteMemberPage() {
 
   const { data: household } = await supabase
     .from("households")
-    .select("id, name")
+    .select("id, name, timezone")
     .eq("id", membership.household_id)
     .maybeSingle();
   if (!household) redirect("/app");
 
-  return <InvitePartnerForm householdId={household.id} householdName={household.name} />;
+  const period = await resolveCurrentPeriod(supabase, household.id);
+  const eligibility = await resolveExpenseEligibility(supabase, household, "owner", period);
+  const nav: AppNavContext = {
+    role: "owner",
+    periodStatus: eligibility.status === "not_open" ? eligibility.periodStatus : eligibility.status === "open" ? "open" : "no_period",
+    canRecordExpense: eligibility.status === "open" && eligibility.sections.length > 0,
+  };
+
+  return (
+    <AppShell nav={nav} householdName={household.name}>
+      <InvitePartnerForm householdId={household.id} householdName={household.name} />
+    </AppShell>
+  );
 }

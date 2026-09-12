@@ -4,6 +4,10 @@
 .headerEyebrow { margin: 0 0 .2rem; color: var(--ui-text-muted); font-size: .78rem; font-weight: 650; }
 .header h1 { margin: 0; font-size: clamp(1.7rem, 6vw, 2.35rem); line-height: 1.2; }
 
+.backLink { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: var(--radius-pill); color: var(--ui-text); text-decoration: none; }
+.backLink .icon { transform: rotate(180deg); }
+.backLink:hover { background: var(--dabber-sand); }
+
 .icon { flex: 0 0 auto; }
 
 /* Amounts -- rendered as an explicit inline-flex pair (number + currency suffix) rather than

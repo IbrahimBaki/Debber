@@ -2,7 +2,22 @@ import type { ReactNode } from "react";
 
 import styles from "./plan.module.css";
 
-export type IconName = "plus" | "check" | "clock" | "skip" | "alert" | "arrow" | "chevron" | "spark" | "trash" | "pause";
+export type IconName =
+  | "plus"
+  | "check"
+  | "clock"
+  | "skip"
+  | "alert"
+  | "arrow"
+  | "chevron"
+  | "spark"
+  | "trash"
+  | "pause"
+  | "home"
+  | "grid"
+  | "list"
+  | "more"
+  | "logout";
 
 const paths: Record<IconName, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
@@ -41,6 +56,40 @@ const paths: Record<IconName, ReactNode> = {
   pause: (
     <>
       <path d="M9 6v12M15 6v12" />
+    </>
+  ),
+  home: (
+    <>
+      <path d="M4 11.5 12 4l8 7.5" />
+      <path d="M6 10v9h5v-5h2v5h5v-9" />
+    </>
+  ),
+  grid: (
+    <>
+      <rect x="4" y="4" width="7" height="7" rx="1.5" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </>
+  ),
+  list: (
+    <>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" />
+    </>
+  ),
+  more: (
+    <>
+      <circle cx="5.5" cy="12" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="18.5" cy="12" r="1.6" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+      <path d="M15 16l4-4-4-4" />
+      <path d="M19 12H9" />
     </>
   ),
 };

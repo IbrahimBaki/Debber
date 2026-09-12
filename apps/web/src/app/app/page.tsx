@@ -7,6 +7,7 @@ import { signOut } from "@/app/auth/actions";
 import styles from "@/app/app/onboarding.module.css";
 import { createClient } from "@/lib/supabase/server";
 
+import { AppShell, type AppNavContext } from "./app-shell";
 import { resolveExpenseEligibility } from "./expenses/eligibility";
 import { loadMemberMonthlyView } from "./member-data";
 import { MemberMonthlyViewPanel } from "./member-view";
@@ -15,6 +16,7 @@ import { OwnerCommitmentsSection } from "./owner-commitments";
 import { loadOwnerHomeView } from "./owner-home-data";
 import ownerHomeStyles from "./owner-home.module.css";
 import { OwnerHero } from "./owner-hero";
+import { resolveCurrentPeriod } from "./period-context";
 import { formatDateRange } from "./plan/format";
 import { Icon } from "./plan/icons";
 import planStyles from "./plan/plan.module.css";
@@ -53,63 +55,82 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
 
   const { passwordUpdated } = await searchParams;
 
-  const eligibility = await resolveExpenseEligibility(supabase, household, membership.role === "owner" ? "owner" : "member");
-  const canRecordExpense = eligibility.status === "open" && eligibility.sections.length > 0;
+  // Resolved exactly once per request and passed into every loader below -- previously each of
+  // resolveExpenseEligibility/loadOwnerCommitments/loadOwnerHomeView (loadMemberMonthlyView for a
+  // Member) independently called ensure_budget_period(...) and re-fetched the same
+  // budget_periods row, producing three (two for a Member) redundant sequential round trips on
+  // every /app render. See ./period-context.ts.
+  const period = await resolveCurrentPeriod(supabase, household.id);
+  const role = membership.role === "owner" ? "owner" : "member";
 
-  if (membership.role !== "owner") {
-    const view = await loadMemberMonthlyView(supabase, household);
+  if (role !== "owner") {
+    const [eligibility, view] = await Promise.all([
+      resolveExpenseEligibility(supabase, household, role, period),
+      loadMemberMonthlyView(supabase, household, period),
+    ]);
+    const canRecordExpense = eligibility.status === "open" && eligibility.sections.length > 0;
+    const nav: AppNavContext = { role: "member", periodStatus: view.status, canRecordExpense };
     return (
-      <main className={planStyles.page} dir="rtl">
-        <div className={planStyles.content}>
-          <div className={ownerHomeStyles.stack}>
-            {passwordUpdated ? <p className={styles.success} role="status">تم تحديث كلمة المرور بنجاح.</p> : null}
-            <MemberMonthlyViewPanel
-              householdName={household.name}
-              currencyCode={household.currency_code}
-              view={view}
-              canRecordExpense={canRecordExpense}
-            />
-            <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
+      <AppShell nav={nav} active="home" householdName={household.name}>
+        <main className={planStyles.page} dir="rtl">
+          <div className={planStyles.content}>
+            <div className={ownerHomeStyles.stack}>
+              {passwordUpdated ? <p className={styles.success} role="status">تم تحديث كلمة المرور بنجاح.</p> : null}
+              <MemberMonthlyViewPanel
+                householdName={household.name}
+                currencyCode={household.currency_code}
+                view={view}
+              />
+              <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </AppShell>
     );
   }
 
-  const commitmentsView = await loadOwnerCommitments(supabase, household);
-  const ownerHome = await loadOwnerHomeView(supabase, household);
+  const [eligibility, commitmentsView, ownerHome] = await Promise.all([
+    resolveExpenseEligibility(supabase, household, "owner", period),
+    loadOwnerCommitments(supabase, household, period),
+    loadOwnerHomeView(supabase, household, period),
+  ]);
+  const canRecordExpense = eligibility.status === "open" && eligibility.sections.length > 0;
+  const ownerNavStatus = ownerHome.status === "no_period" ? "no_period" : ownerHome.status === "draft" ? "draft" : ownerHome.status;
+  const nav: AppNavContext = { role: "owner", periodStatus: ownerNavStatus, canRecordExpense };
 
   // Draft (and the practically-unreachable no_period case) keep the existing setup-focused
   // "ready" composition: the Owner's job here is to finish and start the month, not read a
   // dashboard of numbers that don't represent an active month yet (§26).
   if (ownerHome.status === "no_period" || ownerHome.status === "draft") {
     return (
-      <main className={styles.page}>
-        <section className={styles.ready} aria-labelledby="ready-title">
-          <Image src="/brand/mark.svg" alt="" width={42} height={42} priority />
-          {passwordUpdated ? <p className={styles.success} role="status">تم تحديث كلمة المرور بنجاح.</p> : null}
-          <p className={styles.readyLead}>مساحتك المشتركة</p>
-          <h1 id="ready-title">{household.name}</h1>
-          <p className={styles.readyRole}>مالك البيت</p>
-          <dl className={styles.details}>
-            <div><dt>العملة</dt><dd dir="ltr">{household.currency_code}</dd></div>
-            <div><dt>بداية الشهر المالي</dt><dd>{household.period_start_day}</dd></div>
-          </dl>
-          <div className={styles.actions}>
-            <Link className={styles.primaryButton} href="/app/plan">خطة الشهر</Link>
-            <Link className={styles.quietButton} href="/app/invitations/new">دعوة شريك</Link>
-          </div>
-          <OwnerCommitmentsSection view={commitmentsView} currencyCode={household.currency_code} />
-          <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
-        </section>
-      </main>
+      <AppShell nav={nav} active="home" householdName={household.name}>
+        <main className={styles.page}>
+          <section className={styles.ready} aria-labelledby="ready-title">
+            <Image src="/brand/mark.svg" alt="" width={42} height={42} priority />
+            {passwordUpdated ? <p className={styles.success} role="status">تم تحديث كلمة المرور بنجاح.</p> : null}
+            <p className={styles.readyLead}>مساحتك المشتركة</p>
+            <h1 id="ready-title">{household.name}</h1>
+            <p className={styles.readyRole}>مالك البيت</p>
+            <dl className={styles.details}>
+              <div><dt>العملة</dt><dd dir="ltr">{household.currency_code}</dd></div>
+              <div><dt>بداية الشهر المالي</dt><dd>{household.period_start_day}</dd></div>
+            </dl>
+            <div className={styles.actions}>
+              <Link className={styles.primaryButton} href="/app/plan">خطة الشهر</Link>
+              <Link className={styles.quietButton} href="/app/invitations/new">دعوة شريك</Link>
+            </div>
+            <OwnerCommitmentsSection view={commitmentsView} currencyCode={household.currency_code} />
+          </section>
+        </main>
+      </AppShell>
     );
   }
 
   return (
-    <main className={planStyles.page} dir="rtl">
-      <div className={planStyles.content}>
-        <div className={ownerHomeStyles.stack}>
+    <AppShell nav={nav} active="home" householdName={household.name}>
+      <main className={planStyles.page} dir="rtl">
+        <div className={planStyles.content}>
+          <div className={ownerHomeStyles.stack}>
           {passwordUpdated ? <p className={styles.success} role="status">تم تحديث كلمة المرور بنجاح.</p> : null}
 
           <header className={ownerHomeStyles.header}>
@@ -131,13 +152,10 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
               budgetRemaining={ownerHome.budgetRemaining}
               currencyCode={household.currency_code}
             />
-            {canRecordExpense ? (
-              <Link className={ownerHomeStyles.heroCta} href="/app/expenses/new">إضافة مصروف</Link>
-            ) : null}
           </div>
 
           <div className={ownerHomeStyles.columns}>
-            <section aria-labelledby="owner-sections-title">
+            <section id="app-sections" aria-labelledby="owner-sections-title">
               <h2 id="owner-sections-title" className={ownerHomeStyles.sectionsHeading}>الأقسام</h2>
               {ownerHome.sections.length > 0 ? (
                 <div className={sectionCardStyles.list}>
@@ -162,10 +180,9 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
             <Link className={ownerHomeStyles.managementLink} href="/app/plan">تعديل الخطة</Link>
             <Link className={ownerHomeStyles.managementLink} href="/app/invitations/new">دعوة شريك</Link>
           </div>
-
-          <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </AppShell>
   );
 }

@@ -8,6 +8,7 @@ import { Icon } from "@/app/app/plan/icons";
 import planStyles from "@/app/app/plan/plan.module.css";
 import { createClient } from "@/lib/supabase/server";
 
+import { AppShell, type AppNavContext } from "../../app-shell";
 import { loadSectionDetail } from "./data";
 import styles from "./section-detail.module.css";
 
@@ -37,12 +38,18 @@ export default async function SectionDetailPage({
   if (view.status === "not_found") notFound();
 
   const addExpenseHref = `/app/expenses/new?section=${periodSectionBudgetId}`;
+  const nav: AppNavContext = {
+    role: view.role,
+    periodStatus: view.periodStatus,
+    canRecordExpense: view.canRecordExpense,
+  };
 
   return (
-    <main className={styles.page} dir="rtl">
+    <AppShell nav={nav} active="sections" householdName={view.householdName}>
+      <main className={styles.page} dir="rtl">
       <div className={styles.content}>
         <header className={styles.header}>
-          <Link href="/app" className={styles.backLink} aria-label="رجوع لمصروف الشهر">
+          <Link href="/app#app-sections" className={styles.backLink} aria-label="رجوع للأقسام">
             <Icon name="arrow" size={20} />
           </Link>
           <h1>{view.sectionName}</h1>
@@ -94,6 +101,7 @@ export default async function SectionDetailPage({
           )}
         </section>
       </div>
-    </main>
+      </main>
+    </AppShell>
   );
 }

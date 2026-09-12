@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 import { Amount } from "./amount";
 import type { PlanningSummary } from "./budget-step";
@@ -77,6 +78,9 @@ export function PlanClient({
     <main className={styles.page} dir="rtl">
       <div className={styles.content}>
         <header className={styles.header}>
+          <Link href="/app" className={styles.backLink} aria-label="رجوع للرئيسية">
+            <Icon name="arrow" size={20} />
+          </Link>
           <Image src="/brand/mark.svg" alt="" width={34} height={34} />
           <div>
             <p className={styles.headerEyebrow}>{household.name} · {formatDateRange(period.startDate, period.endDate)}</p>
