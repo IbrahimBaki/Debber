@@ -1,4 +1,48 @@
-.header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-block: var(--space-4); }
+/* Vertical rhythm for the monthly-home surfaces (Owner + Member). Every direct child gets
+   consistent breathing room instead of relying on each component's own incidental margins --
+   this is what previously let the "Add Expense" CTA visually collide with the sections
+   heading directly beneath it. */
+.stack { display: grid; gap: var(--space-6); }
+
+/* Groups the hero with its primary action so the CTA reads as "the thing to do about this
+   number" rather than a stray full-width button floating before the next heading. */
+.heroGroup { display: grid; gap: var(--space-3); }
+
+/* The "إضافة مصروف" action, scoped to sit directly under a hero: sized for a clear ≥44px
+   touch target but intentionally NOT full-width/floating (no shadow-float) like the
+   full-bleed .primaryButton elsewhere -- it should read as subordinate to the hero's large
+   number, not compete with it. */
+.heroCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  gap: .4rem;
+  min-height: 2.75rem;
+  padding-inline: var(--space-5);
+  color: var(--ui-text-on-dark);
+  text-decoration: none;
+  font: inherit;
+  font-size: .92rem;
+  font-weight: 800;
+  background: var(--ui-brand);
+  border: 0;
+  border-radius: var(--radius-pill);
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+.heroCta:hover { background: var(--ui-brand-strong); transform: translateY(-1px); }
+.heroCta:focus-visible { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .heroCta { transition: none; }
+}
+
+/* Desktop-only two-proportional-column composition for the flexible sections and fixed
+   commitments, matching DESIGN.md's documented >=72rem layout ("budget sections and recurring
+   obligations form two proportional columns"). Below 72rem this stays a single column. */
+.columns { display: grid; gap: var(--space-6); align-items: start; }
+
+.header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .eyebrow { margin: 0 0 .2rem; color: var(--ui-text-muted); font-size: .78rem; font-weight: 650; }
 .header h1 { margin: 0; font-size: clamp(1.4rem, 5vw, 1.9rem); line-height: 1.2; }
 .statusBadge { display: inline-flex; align-items: center; min-height: 1.6rem; padding: 0 var(--space-2); border-radius: var(--radius-pill); font-size: .74rem; font-weight: 750; background: var(--ui-neutral-soft); color: var(--ui-text-muted); }
@@ -6,6 +50,15 @@
 
 .sectionsHeading { margin: 0 0 var(--space-3); font-size: 1.05rem; }
 
-.managementLinks { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-top: var(--space-6); }
+.managementLinks { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
 .managementLink { display: inline-flex; align-items: center; min-height: 2.5rem; color: var(--ui-brand-strong); text-decoration: none; font: inherit; font-size: .84rem; font-weight: 750; }
 .managementLink:hover { text-decoration: underline; }
+
+/* OwnerCommitmentsSection carries its own margin-top for its other (non-grid) usage in the
+   Draft "ready" composition; cancel it out only here so it aligns flush with the top of its
+   grid column instead of dropping below the "الأقسام" heading in the sibling column. */
+.commitmentsColumn { margin-top: calc(-1 * var(--space-6)); }
+
+@media (min-width: 72rem) {
+  .columns { grid-template-columns: minmax(0, 1.6fr) minmax(19rem, 1fr); }
+}

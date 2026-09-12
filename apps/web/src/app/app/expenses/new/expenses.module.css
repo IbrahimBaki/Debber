@@ -40,14 +40,16 @@
 .primaryButton:hover { background: var(--ui-brand-strong); }
 .quietLink { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding-inline: var(--space-4); color: var(--ui-brand-strong); text-decoration: none; font: inherit; font-weight: 750; border: 1px solid currentColor; border-radius: var(--radius-pill); }
 
-/* Success / voided state */
-.successCard { margin: auto 0; padding: var(--space-6); text-align: center; background: var(--ui-success-soft); border-radius: var(--radius-lg); display: grid; gap: var(--space-2); justify-items: center; animation: settle var(--duration-standard) var(--ease-out); }
+/* Success / voided state -- compact and anchored near the top (not vertically centered in the
+   full remaining page height, which is what previously read as a giant near-empty green
+   surface); sized to its actual content instead. */
+.successCard { margin-top: var(--space-5); padding: var(--space-5); text-align: center; background: var(--ui-success-soft); border-radius: var(--radius-lg); display: grid; gap: var(--space-2); justify-items: center; animation: settle var(--duration-standard) var(--ease-out); }
 .successCard span { width: 3rem; height: 3rem; display: grid; place-items: center; border-radius: 50%; background: var(--ui-success); color: #fffaf5; }
 .successCard h1 { margin: var(--space-2) 0 0; font-size: 1.25rem; color: var(--ui-success-text); }
-.successAmount { display: block; margin: .2rem 0; font-size: clamp(2rem, 9vw, 2.6rem); }
+.successAmount { margin: .2rem 0; font-size: clamp(1.8rem, 8vw, 2.25rem); }
 .successSection { margin: 0; color: var(--ui-text-muted); }
 
-.voidedCard { margin: auto 0; padding: var(--space-6); text-align: center; background: var(--ui-neutral-soft); border-radius: var(--radius-lg); display: grid; gap: var(--space-2); justify-items: center; }
+.voidedCard { margin-top: var(--space-5); padding: var(--space-5); text-align: center; background: var(--ui-neutral-soft); border-radius: var(--radius-lg); display: grid; gap: var(--space-2); justify-items: center; }
 .voidedCard span { width: 3rem; height: 3rem; display: grid; place-items: center; border-radius: 50%; background: var(--ui-text-muted); color: #fffaf5; }
 .voidedCard h1 { margin: var(--space-2) 0 0; font-size: 1.25rem; }
 
@@ -55,7 +57,11 @@
 .overspendNote .icon { flex: 0 0 auto; margin-top: .1rem; }
 
 .successActions { display: grid; gap: var(--space-2); width: 100%; margin-top: var(--space-4); }
-.voidButton { min-height: 2.75rem; border: 0; background: transparent; color: var(--ui-danger); font: inherit; font-weight: 750; font-size: .84rem; cursor: pointer; }
+
+/* Visually separates the destructive action from the primary/secondary pair above it, so it
+   reads as a distinct, lower-emphasis zone rather than competing with "إضافة مصروف آخر". */
+.dangerZone { margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid rgb(65 107 96 / .18); }
+.voidButton { min-height: 2.75rem; border: 0; background: transparent; color: var(--ui-danger); font: inherit; font-weight: 700; font-size: .8rem; cursor: pointer; }
 .voidButton:disabled { opacity: .6; cursor: wait; }
 
 .voidConfirm { display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--ui-danger-surface); border-radius: var(--radius-md); }

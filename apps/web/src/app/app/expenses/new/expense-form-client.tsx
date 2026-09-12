@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Amount } from "@/app/app/plan/amount";
-import { currencyLabel, formatAmount } from "@/app/app/plan/format";
 import { Icon } from "@/app/app/plan/icons";
 import { MoneyInput } from "@/app/app/plan/money-input";
 
@@ -77,35 +76,41 @@ export function ExpenseFormClient({
         {lastResult.overspent ? (
           <p className={styles.overspendNote}>
             <Icon name="alert" size={16} />
-            {lastResult.sectionName} تجاوز المخصص بـ {formatAmount(lastResult.overspentBy)} {currencyLabel(lastResult.currencyCode)}
+            <span>
+              {lastResult.sectionName} تجاوز المخصص بـ{" "}
+              <Amount value={lastResult.overspentBy} currencyCode={lastResult.currencyCode} />
+            </span>
           </p>
         ) : null}
         <div className={styles.successActions}>
           <button type="button" className={styles.primaryButton} onClick={() => startNewExpense()}>
             إضافة مصروف آخر
           </button>
-          {confirmingVoid ? (
-            <div className={styles.voidConfirm}>
-              <span>إلغاء هذا المصروف؟</span>
-              <div className={styles.voidConfirmActions}>
-                <form action={voidAction}>
-                  <input type="hidden" name="transactionId" value={lastResult.transactionId} />
-                  <button type="submit" className={styles.confirmVoidButton} disabled={voiding}>
-                    {voiding ? "جارٍ الإلغاء…" : "تأكيد الإلغاء"}
-                  </button>
-                </form>
-                <button type="button" className={styles.cancelVoidButton} onClick={() => setConfirmingVoid(false)} disabled={voiding}>
-                  تراجع
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button type="button" className={styles.voidButton} onClick={() => setConfirmingVoid(true)}>
-              إلغاء المصروف
-            </button>
-          )}
-          {voidState.error ? <p className={styles.rowError} role="alert">{voidState.error}</p> : null}
           <Link href="/app" className={styles.quietLink}>رجوع</Link>
+
+          <div className={styles.dangerZone}>
+            {confirmingVoid ? (
+              <div className={styles.voidConfirm}>
+                <span>إلغاء هذا المصروف؟</span>
+                <div className={styles.voidConfirmActions}>
+                  <form action={voidAction}>
+                    <input type="hidden" name="transactionId" value={lastResult.transactionId} />
+                    <button type="submit" className={styles.confirmVoidButton} disabled={voiding}>
+                      {voiding ? "جارٍ الإلغاء…" : "تأكيد الإلغاء"}
+                    </button>
+                  </form>
+                  <button type="button" className={styles.cancelVoidButton} onClick={() => setConfirmingVoid(false)} disabled={voiding}>
+                    تراجع
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className={styles.voidButton} onClick={() => setConfirmingVoid(true)}>
+                إلغاء المصروف
+              </button>
+            )}
+            {voidState.error ? <p className={styles.rowError} role="alert">{voidState.error}</p> : null}
+          </div>
         </div>
       </div>
     );
@@ -153,7 +158,14 @@ export function ExpenseFormClient({
           <div className={styles.sectionMeta}>
             <span>المخصص <Amount value={selectedSection.allocated} currencyCode={currencyCode} /></span>
             <span>المصروف <Amount value={selectedSection.spent} currencyCode={currencyCode} /></span>
-            <span>المتبقي <Amount value={selectedSection.allocated - selectedSection.spent} currencyCode={currencyCode} tone={selectedSection.allocated - selectedSection.spent < 0 ? "deficit" : undefined} /></span>
+            <span>
+              {selectedSection.allocated - selectedSection.spent < 0 ? "متجاوز بـ" : "المتبقي"}{" "}
+              <Amount
+                value={Math.abs(selectedSection.allocated - selectedSection.spent)}
+                currencyCode={currencyCode}
+                tone={selectedSection.allocated - selectedSection.spent < 0 ? "deficit" : undefined}
+              />
+            </span>
           </div>
         ) : null}
       </div>

@@ -6,9 +6,27 @@
 
 .icon { flex: 0 0 auto; }
 
-/* Amounts */
-.amount { font-family: var(--font-latin), var(--font-arabic), sans-serif; font-variant-numeric: tabular-nums; font-weight: 750; white-space: nowrap; direction: rtl; unicode-bidi: plaintext; }
-.amount small { margin-inline-start: .25rem; font-family: var(--font-arabic), sans-serif; font-size: .68em; font-weight: 650; }
+/* Amounts -- rendered as an explicit inline-flex pair (number + currency suffix) rather than
+   two text nodes left to ordinary line layout, so the two pieces can never be pulled apart or
+   reordered by surrounding bidi context (a real browser bug: the previous "unicode-bidi:
+   plaintext" combined with an explicit dir="rtl" attribute on the same element is a redundant,
+   under-specified combination -- plaintext re-detects paragraph direction from content and
+   ignores the dir attribute/direction property, which produced inconsistent stacking/overlap
+   at large font sizes). "isolate" is the standard, predictable pairing with an explicit dir
+   attribute: it treats the whole amount as a resolved-rtl unit without affecting surrounding
+   text, and never re-derives direction from digits (which are bidi-weak and have none). */
+.amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .25em;
+  font-family: var(--font-latin), var(--font-arabic), sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  white-space: nowrap;
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+.amount small { font-family: var(--font-arabic), sans-serif; font-size: .68em; font-weight: 650; }
 .amountNegative { color: var(--ui-danger); }
 .amountPositive { color: var(--ui-success); }
 .amountDeficit { color: var(--ui-warning); }

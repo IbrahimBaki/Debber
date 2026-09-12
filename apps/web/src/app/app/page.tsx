@@ -61,12 +61,16 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
     return (
       <main className={planStyles.page} dir="rtl">
         <div className={planStyles.content}>
-          {passwordUpdated ? <p className={styles.success} role="status">تم تحديث كلمة المرور بنجاح.</p> : null}
-          <MemberMonthlyViewPanel householdName={household.name} currencyCode={household.currency_code} view={view} />
-          {canRecordExpense ? (
-            <Link className={planStyles.primaryButton} href="/app/expenses/new">إضافة مصروف</Link>
-          ) : null}
-          <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
+          <div className={ownerHomeStyles.stack}>
+            {passwordUpdated ? <p className={styles.success} role="status">تم تحديث كلمة المرور بنجاح.</p> : null}
+            <MemberMonthlyViewPanel
+              householdName={household.name}
+              currencyCode={household.currency_code}
+              view={view}
+              canRecordExpense={canRecordExpense}
+            />
+            <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
+          </div>
         </div>
       </main>
     );
@@ -105,55 +109,62 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
   return (
     <main className={planStyles.page} dir="rtl">
       <div className={planStyles.content}>
-        {passwordUpdated ? <p className={styles.success} role="status">تم تحديث كلمة المرور بنجاح.</p> : null}
+        <div className={ownerHomeStyles.stack}>
+          {passwordUpdated ? <p className={styles.success} role="status">تم تحديث كلمة المرور بنجاح.</p> : null}
 
-        <header className={ownerHomeStyles.header}>
-          <div>
-            <p className={ownerHomeStyles.eyebrow}>
-              {household.name} · {formatDateRange(ownerHome.periodStart, ownerHome.periodEnd)} · <span dir="ltr">{household.currency_code}</span>
-            </p>
-            <h1>مصروف الشهر</h1>
+          <header className={ownerHomeStyles.header}>
+            <div>
+              <p className={ownerHomeStyles.eyebrow}>
+                {household.name} · {formatDateRange(ownerHome.periodStart, ownerHome.periodEnd)} · <span dir="ltr">{household.currency_code}</span>
+              </p>
+              <h1>مصروف الشهر</h1>
+            </div>
+            {ownerHome.status === "closed" ? (
+              <span className={ownerHomeStyles.statusBadge} data-status="closed">الشهر مغلق</span>
+            ) : null}
+          </header>
+
+          <div className={ownerHomeStyles.heroGroup}>
+            <OwnerHero
+              spendingBudget={ownerHome.spendingBudget}
+              actualVariableSpending={ownerHome.actualVariableSpending}
+              budgetRemaining={ownerHome.budgetRemaining}
+              currencyCode={household.currency_code}
+            />
+            {canRecordExpense ? (
+              <Link className={ownerHomeStyles.heroCta} href="/app/expenses/new">إضافة مصروف</Link>
+            ) : null}
           </div>
-          {ownerHome.status === "closed" ? (
-            <span className={ownerHomeStyles.statusBadge} data-status="closed">الشهر مغلق</span>
-          ) : null}
-        </header>
 
-        <OwnerHero
-          spendingBudget={ownerHome.spendingBudget}
-          actualVariableSpending={ownerHome.actualVariableSpending}
-          budgetRemaining={ownerHome.budgetRemaining}
-          currencyCode={household.currency_code}
-        />
+          <div className={ownerHomeStyles.columns}>
+            <section aria-labelledby="owner-sections-title">
+              <h2 id="owner-sections-title" className={ownerHomeStyles.sectionsHeading}>الأقسام</h2>
+              {ownerHome.sections.length > 0 ? (
+                <div className={sectionCardStyles.list}>
+                  {ownerHome.sections.map((section) => (
+                    <SectionCard key={section.id} section={section} currencyCode={household.currency_code} />
+                  ))}
+                </div>
+              ) : (
+                <div className={planStyles.emptyState}>
+                  <span><Icon name="spark" size={20} /></span>
+                  <p>مفيش أقسام مصروف بعد. أضف قسمًا من خطة الشهر.</p>
+                </div>
+              )}
+            </section>
 
-        {canRecordExpense ? (
-          <Link className={planStyles.primaryButton} href="/app/expenses/new">إضافة مصروف</Link>
-        ) : null}
-
-        <section aria-labelledby="owner-sections-title">
-          <h2 id="owner-sections-title" className={ownerHomeStyles.sectionsHeading}>الأقسام</h2>
-          {ownerHome.sections.length > 0 ? (
-            <div className={sectionCardStyles.list}>
-              {ownerHome.sections.map((section) => (
-                <SectionCard key={section.id} section={section} currencyCode={household.currency_code} />
-              ))}
+            <div className={ownerHomeStyles.commitmentsColumn}>
+              <OwnerCommitmentsSection view={commitmentsView} currencyCode={household.currency_code} />
             </div>
-          ) : (
-            <div className={planStyles.emptyState}>
-              <span><Icon name="spark" size={20} /></span>
-              <p>مفيش أقسام مصروف بعد. أضف قسمًا من خطة الشهر.</p>
-            </div>
-          )}
-        </section>
+          </div>
 
-        <OwnerCommitmentsSection view={commitmentsView} currencyCode={household.currency_code} />
+          <div className={ownerHomeStyles.managementLinks}>
+            <Link className={ownerHomeStyles.managementLink} href="/app/plan">تعديل الخطة</Link>
+            <Link className={ownerHomeStyles.managementLink} href="/app/invitations/new">دعوة شريك</Link>
+          </div>
 
-        <div className={ownerHomeStyles.managementLinks}>
-          <Link className={ownerHomeStyles.managementLink} href="/app/plan">تعديل الخطة</Link>
-          <Link className={ownerHomeStyles.managementLink} href="/app/invitations/new">دعوة شريك</Link>
+          <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
         </div>
-
-        <form action={signOut}><button className={styles.quietButton}>تسجيل الخروج</button></form>
       </div>
     </main>
   );

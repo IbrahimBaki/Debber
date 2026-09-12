@@ -2,8 +2,11 @@
 .statusBadge[data-status="open"] { background: var(--ui-success-soft); color: var(--ui-success-text); }
 .statusBadge[data-status="draft"] { background: var(--ui-warning-soft); color: var(--ui-warning); }
 
-.incomeLine { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid rgb(250 245 239 / .18); font-size: .84rem; color: #c0cbd3; }
-.incomeLine .amount { font-size: .92rem; color: #fffaf5; }
-.incomeLine .amount small { color: #c0cbd3; }
-
 .sectionsHeading { margin: 0 0 var(--space-3); font-size: 1.05rem; }
+
+/* Quiet secondary context row for the Household's approved-visible spending_budget (and the
+   optional income total) -- deliberately plain text, never a card, so it reads as background
+   context rather than competing with the shared-sections hero above it. */
+.context { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); padding-inline: .2rem; color: var(--ui-text-muted); font-size: .82rem; }
+.contextItem { display: inline-flex; align-items: baseline; gap: .3rem; }
+.contextAmount { font-size: .82rem; color: var(--ui-text); }

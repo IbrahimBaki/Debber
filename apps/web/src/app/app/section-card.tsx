@@ -18,8 +18,10 @@ export type SectionCardData = {
  * "Section and list surfaces" rule (warm white bordered surfaces with contiguous rows; "avoids
  * a deck of identical cards" is an explicit Don't). Render one or more inside a
  * `styles.list` wrapper. The whole row links to /app/sections/[periodSectionBudgetId] (§15 of
- * the home redesign): no nested interactive control lives inside it, so "Add Expense" is never
- * duplicated here -- it belongs on the section detail page this links to.
+ * the home redesign) and the chevron is the row's only navigation affordance -- no decorative
+ * circular icon: a previous sparkle/warning icon read as a second, false clickable control in
+ * a real browser and has been removed. "Add Expense" is never duplicated in this row either --
+ * it belongs on the section detail page this links to.
  */
 export function SectionCard({ section, currencyCode }: { section: SectionCardData; currencyCode: string }) {
   const percentSpent = section.allocated > 0 ? Math.min(100, Math.round((section.spent / section.allocated) * 100)) : 0;
@@ -27,16 +29,26 @@ export function SectionCard({ section, currencyCode }: { section: SectionCardDat
   return (
     <Link href={`/app/sections/${section.id}`} className={styles.row}>
       <div className={styles.info}>
-        <div className={styles.top}>
-          <strong>{section.name}</strong>
-          <span className={styles.remainingLine}>
-            <span className={styles.remainingLabel}>{section.overspent ? "متجاوز بـ" : "باقي"}</span>
-            <Amount
-              value={Math.abs(section.remaining)}
-              currencyCode={currencyCode}
-              tone={section.overspent ? "deficit" : undefined}
-              className={styles.remainingAmount}
-            />
+        <strong className={styles.name}>{section.name}</strong>
+
+        <p className={styles.remainingLine}>
+          <span className={styles.remainingLabel}>{section.overspent ? "متجاوز بـ" : "باقي"}</span>
+          <Amount
+            value={Math.abs(section.remaining)}
+            currencyCode={currencyCode}
+            tone={section.overspent ? "deficit" : undefined}
+            className={styles.remainingAmount}
+          />
+        </p>
+
+        <div className={styles.stats}>
+          <span className={styles.stat}>
+            <span className={styles.statLabel}>المصروف</span>
+            <Amount value={section.spent} currencyCode={currencyCode} className={styles.statAmount} />
+          </span>
+          <span className={styles.stat}>
+            <span className={styles.statLabel}>المخصص</span>
+            <Amount value={section.allocated} currencyCode={currencyCode} className={styles.statAmount} />
           </span>
         </div>
 
@@ -45,13 +57,9 @@ export function SectionCard({ section, currencyCode }: { section: SectionCardDat
             <span className={styles.trackFill} data-overspent={section.overspent ? "true" : undefined} style={{ width: `${percentSpent}%` }} />
           </span>
         ) : null}
-
-        <p className={styles.meta}>
-          <Amount value={section.spent} currencyCode={currencyCode} /> مصروف من <Amount value={section.allocated} currencyCode={currencyCode} /> مخصص
-        </p>
       </div>
 
-      <span className={styles.chevron}>
+      <span className={styles.chevron} aria-hidden="true">
         <Icon name="chevron" size={18} />
       </span>
     </Link>

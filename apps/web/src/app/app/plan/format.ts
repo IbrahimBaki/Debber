@@ -1,6 +1,11 @@
+// Owner-approved display rule: Latin (0-9) digits always ("ar-EG" alone would render
+// Arabic-Indic digits, ٠١٢٣...), and no fraction digits ever, even when the underlying
+// numeric(14,2) value has real cents. This is presentation only -- it never touches stored
+// precision, RPC signatures, or accepted transaction precision.
 const numberFormatter = new Intl.NumberFormat("ar-EG", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
+  numberingSystem: "latn",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
 });
 
 const CURRENCY_LABELS: Record<string, string> = {
@@ -19,7 +24,11 @@ export function currencyLabel(currencyCode: string): string {
   return CURRENCY_LABELS[currencyCode] ?? currencyCode;
 }
 
-/** Formats a server-supplied numeric amount for display. Never used as a calculation input. */
+/**
+ * Formats a server-supplied numeric amount for display: Latin digits, thousands separators,
+ * no fraction digits. Never used as a calculation input -- the underlying numeric(14,2) value
+ * and every domain RPC keep full stored precision regardless of how this displays it.
+ */
 export function formatAmount(value: number): string {
   return numberFormatter.format(value);
 }

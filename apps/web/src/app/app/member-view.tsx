@@ -1,8 +1,12 @@
-import { Amount } from "./plan/amount";
+import Link from "next/link";
+
 import { formatDateRange } from "./plan/format";
 import { Icon } from "./plan/icons";
 import planStyles from "./plan/plan.module.css";
+import { Amount } from "./plan/amount";
 import type { MemberMonthlyView } from "./member-data";
+import { MemberHero } from "./member-hero";
+import ownerHomeStyles from "./owner-home.module.css";
 import { SectionCard } from "./section-card";
 import sectionCardStyles from "./section-card.module.css";
 import styles from "./member-view.module.css";
@@ -52,10 +56,12 @@ export function MemberMonthlyViewPanel({
   householdName,
   currencyCode,
   view,
+  canRecordExpense,
 }: {
   householdName: string;
   currencyCode: string;
   view: MemberMonthlyView;
+  canRecordExpense: boolean;
 }) {
   if (view.status === "no_period") {
     return (
@@ -83,67 +89,59 @@ export function MemberMonthlyViewPanel({
   }
 
   const { spendingBudget, totalIncome, sections, sharedSummary } = view;
+  const hasSharedSections = sections.length > 0;
 
   return (
     <>
       <Header householdName={householdName} currencyCode={currencyCode} periodStart={view.periodStart} periodEnd={view.periodEnd} status={view.status} />
 
-      <div className={planStyles.summaryDock}>
-        <p className={planStyles.summaryLabel}>ميزانية المصروف</p>
-        <Amount value={spendingBudget} currencyCode={currencyCode} className={planStyles.summaryHeadline} />
+      {hasSharedSections ? (
+        <div className={ownerHomeStyles.heroGroup}>
+          <MemberHero
+            sharedAllocated={sharedSummary.allocated}
+            sharedSpent={sharedSummary.spent}
+            sharedRemaining={sharedSummary.remaining}
+            currencyCode={currencyCode}
+          />
+          {view.status === "open" && canRecordExpense ? (
+            <Link className={ownerHomeStyles.heroCta} href="/app/expenses/new">إضافة مصروف</Link>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Household spending_budget stays approved-visible context (D-031), but never competes
+          with the shared-sections hero above and never reads as its denominator -- a quiet
+          text row, not another dark summary card. */}
+      <div className={styles.context}>
+        <span className={styles.contextItem}>
+          ميزانية المصروف <Amount value={spendingBudget} currencyCode={currencyCode} className={styles.contextAmount} />
+        </span>
         {totalIncome !== null ? (
-          <div className={styles.incomeLine}>
-            <span>إجمالي الدخل</span>
-            <Amount value={totalIncome} currencyCode={currencyCode} />
-          </div>
+          <span className={styles.contextItem}>
+            إجمالي الدخل <Amount value={totalIncome} currencyCode={currencyCode} className={styles.contextAmount} />
+          </span>
         ) : (
-          <p className={styles.incomeLine}>
-            <span>الدخل غير مشارك</span>
-          </p>
+          <span className={styles.contextItem}>الدخل غير مشارك</span>
         )}
       </div>
 
-      {sections.length > 0 ? (
-        <>
-          <section className={planStyles.relationCard} aria-labelledby="shared-summary-title">
-            <h2 id="shared-summary-title" className={styles.sectionsHeading}>
-              الأقسام المشتركة
-            </h2>
-            <div className={planStyles.relationRow}>
-              <span>إجمالي المخصص</span>
-              <Amount value={sharedSummary.allocated} currencyCode={currencyCode} />
-            </div>
-            <div className={planStyles.relationRow}>
-              <span>المصروف</span>
-              <Amount value={sharedSummary.spent} currencyCode={currencyCode} />
-            </div>
-            <div className={`${planStyles.relationRow} ${planStyles.relationResult}`}>
-              <span>المتبقي في الأقسام المشتركة</span>
-              <Amount
-                value={sharedSummary.remaining}
-                currencyCode={currencyCode}
-                tone={sharedSummary.remaining < 0 ? "deficit" : undefined}
-              />
-            </div>
-          </section>
-
-          <section aria-labelledby="sections-title">
-            <h2 id="sections-title" className={styles.sectionsHeading}>
-              الأقسام
-            </h2>
-            <div className={sectionCardStyles.list}>
-              {sections.map((section) => (
-                <SectionCard key={section.id} section={section} currencyCode={currencyCode} />
-              ))}
-            </div>
-          </section>
-        </>
+      {hasSharedSections ? (
+        <section aria-labelledby="sections-title">
+          <h2 id="sections-title" className={styles.sectionsHeading}>
+            الأقسام
+          </h2>
+          <div className={sectionCardStyles.list}>
+            {sections.map((section) => (
+              <SectionCard key={section.id} section={section} currencyCode={currencyCode} />
+            ))}
+          </div>
+        </section>
       ) : (
         <div className={planStyles.emptyState}>
           <span>
             <Icon name="spark" size={20} />
           </span>
-          <p>مفيش أقسام مشتركة معاك دلوقتي.</p>
+          <p>مفيش أقسام مشتركة معاك لسه.</p>
         </div>
       )}
     </>
