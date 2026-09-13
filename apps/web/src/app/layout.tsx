@@ -15,11 +15,42 @@ const latin = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://debber-web.vercel.app"),
   title: {
-    default: "دبّر | Dabber",
+    default: "دبّر | ميزانية البيت ببساطة",
     template: "%s | دبّر",
   },
-  description: "مساحة هادئة لتنظيم ميزانية المنزل المشتركة.",
+  description:
+    "خطّط ميزانية الشهر، تابع المصروف، وشارك فقط ما يناسبك مع أفراد البيت.",
+  openGraph: {
+    title: "دبّر | ميزانية البيت ببساطة",
+    description:
+      "خطّط ميزانية الشهر، تابع المصروف، وشارك فقط ما يناسبك مع أفراد البيت.",
+    type: "website",
+    url: "/",
+    siteName: "دبّر",
+    locale: "ar_EG",
+    images: [
+      {
+        url: "/brand/dabber-social-preview.png",
+        width: 1200,
+        height: 630,
+        alt: "دبّر — ميزانية البيت ببساطة",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "دبّر | ميزانية البيت ببساطة",
+    description:
+      "خطّط ميزانية الشهر، تابع المصروف، وشارك فقط ما يناسبك مع أفراد البيت.",
+    images: [
+      {
+        url: "/brand/dabber-social-preview.png",
+        alt: "دبّر — ميزانية البيت ببساطة",
+      },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
